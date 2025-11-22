@@ -1,26 +1,27 @@
 # 1. Build-Stage: Projekt mit Gradle Wrapper bauen
-FROM gradle:jdk21-jammy AS build
+FROM gradle:8.10.2-jdk21-jammy AS build
 
-# Arbeitsverzeichnis im Container
+# Arbeitsverzeichnis setzen
 WORKDIR /home/gradle/src
 
 # Projektquellcode in das Image kopieren
 COPY --chown=gradle:gradle . .
 
-# Build ausführen (mit Gradle Wrapper) – Tests hier optional übersprungen
+# Build ausführen, Tests optional überspringen
+# (wenn deine Tests stabil sind, kannst du -x test auch weglassen)
 RUN ./gradlew clean build -x test --no-daemon
 
-# 2. Runtime-Stage: schlankes JDK-Image, nur das fertige JAR
+# 2. Runtime-Stage: schlankes JDK-Image mit nur dem fertigen JAR
 FROM eclipse-temurin:21-jdk-jammy
 
-# Arbeitsverzeichnis im Laufzeit-Container
 WORKDIR /app
 
-# Fertiges JAR aus der Build-Stage kopieren
-COPY --from=build /home/gradle/src/build/libs/rezeptapp-0.0.1-SNAPSHOT.jar app.jar
+# Das gebaute JAR aus der Build-Stage kopieren
+# Der Wildcard (*) ist wichtig, damit du den Namen nicht bei jeder Version anpassen musst
+COPY --from=build /home/gradle/src/build/libs/*SNAPSHOT.jar app.jar
 
-# Port (nur Doku, Render ignoriert das, ist aber nice to have)
+# Port dokumentieren (Spring Boot läuft standardmäßig auf 8080)
 EXPOSE 8080
 
-# Start-Kommando
+# Anwendung starten
 ENTRYPOINT ["java", "-jar", "app.jar"]
