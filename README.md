@@ -1,22 +1,26 @@
 # RezeptApp Backend
 
+---
+
 | Abschnitt | Beschreibung |
 |----------|--------------|
 | **Projektname** | Backend-RezeptApp |
-| **Ziel** | Spring-Boot-Backend für die Bereitstellung von Rezeptdaten im WebTech-Projekt |
+| **Ziel** | Spring-Boot-Backend zur Bereitstellung und Speicherung von Rezeptdaten im WebTech-Projekt |
 | **Technologien** | Java 21, Spring Boot 3, Gradle |
-| **Frameworks & Tools** | Spring Web, Docker, Render, IntelliJ IDEA |
-| **API-Endpunkte** | `/rezepte` – gibt eine Liste von Rezepten im JSON-Format zurück |
-| **Live Backend (Render)** | https://backend-rezeptapp-v72u.onrender.com/rezepte |
-| **Status** | Milestone 3: Backend läuft auf Render, wird vom Frontend per GET `/rezepte` angebunden |
-| **Autor** | Shawesh Moayed |
+| **Frameworks & Tools** | Spring Web, Spring Data JPA, PostgreSQL, Docker, Render, IntelliJ IDEA |
+| **API-Endpunkte** | `/rezeptapp` – GET (alle Rezepte), POST (neues Rezept speichern) |
+| **Live Backend (Render)** | https://backend-rezeptapp-v72u.onrender.com/rezeptapp |
+| **Datenbank** | PostgreSQL (gehostet auf Render) |
+| **Status** | **Milestone 4 – REST-API speichert Daten persistent und wird vom Frontend genutzt** |
+| **Autor** | Moayed Shawesh |
 | **Erstellt am** | Oktober 2025 |
-| **Letztes Update** | November 2025 |
+| **Letztes Update** | Dezember 2025 |
 
 ---
 
-## ⚙️ Projekt lokal starten
+## ⚙️ Backend lokal starten
 
 1. Repository klonen:
-   ```bash
-   git clone https://github.com/ShaweshMoayed/backend-rezeptapp.git
+```bash
+git clone https://github.com/ShaweshMoayed/backend-rezeptapp.git
+cd backend-rezeptapp
