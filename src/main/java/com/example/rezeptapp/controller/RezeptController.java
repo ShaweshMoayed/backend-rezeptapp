@@ -17,7 +17,7 @@ import java.util.List;
 public class RezeptController {
 
     // GET /rezepte -> Liste von Rezepten als JSON
-    @GetMapping("/rezepte")
+    @GetMapping("/rezeptapp")
     public List<Rezept> getRezepte() {
         return List.of(
                 new Rezept(
