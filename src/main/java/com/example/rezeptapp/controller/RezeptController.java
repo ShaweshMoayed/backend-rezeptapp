@@ -1,40 +1,30 @@
 package com.example.rezeptapp.controller;
 
 import com.example.rezeptapp.model.Rezept;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.example.rezeptapp.service.RezeptService;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@CrossOrigin(
-        origins = {
-                "http://localhost:5173",                // Vue-Dev-Server lokal
-                "https://frontend-rezeptapp.onrender.com" // TODO: hier später deine echte Render-URL eintragen
-        }
-)
+@RequestMapping("/rezeptapp")
 public class RezeptController {
 
-    // GET /rezepte -> Liste von Rezepten als JSON
-    @GetMapping("/rezeptapp")
-    public List<Rezept> getRezepte() {
-        return List.of(
-                new Rezept(
-                        1L,
-                        "Spaghetti Carbonara",
-                        "Klassisches italienisches Gericht mit Speck, Ei und Parmesan."
-                ),
-                new Rezept(
-                        2L,
-                        "Gemüsesuppe",
-                        "Leichte Suppe mit frischem Gemüse – perfekt für kalte Tage."
-                ),
-                new Rezept(
-                        3L,
-                        "Pancakes",
-                        "Fluffige Pfannkuchen mit Ahornsirup und Beeren."
-                )
-        );
+    private final RezeptService rezeptService;
+
+    public RezeptController(RezeptService rezeptService) {
+        this.rezeptService = rezeptService;
+    }
+
+    // ✅ GET /rezeptapp
+    @GetMapping
+    public List<Rezept> getAlleRezepte() {
+        return rezeptService.findAll();
+    }
+
+    // ✅ POST /rezeptapp
+    @PostMapping
+    public Rezept createRezept(@RequestBody Rezept rezept) {
+        return rezeptService.create(rezept);
     }
 }

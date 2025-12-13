@@ -6,7 +6,7 @@ plugins {
 
 group = 'com.example'
 version = '0.0.1-SNAPSHOT'
-description = 'Demo project for Spring Boot'
+description = 'RezeptApp Backend'
 
 java {
 	toolchain {
@@ -19,12 +19,26 @@ repositories {
 }
 
 dependencies {
+	// Web / REST
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	// ✅ M4: Datenbank + ORM (JPA/Hibernate)
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// ✅ M4: PostgreSQL Driver (Render)
+	// Version kann weggelassen werden -> Spring Dependency Management setzt eine passende Version
+	runtimeOnly 'org.postgresql:postgresql'
+
+	// Devtools (optional)
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// Tests (für M4 nicht nötig, aber kann drin bleiben)
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Falls du Tests beim Build komplett überspringen willst, entkommentiere:
+	// enabled = false
 }
