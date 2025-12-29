@@ -14,28 +14,22 @@ public class Recipe {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // vorher "name"
     @Column(nullable = false)
     private String title;
 
-    // Kurzbeschreibung
     @Column(nullable = false, length = 2000)
     private String description;
 
-    // Anleitung / Kochschritte
     @Column(length = 10000)
     private String instructions;
 
-    // Kategorie als String (wie du willst)
     private String category;
 
-    // optional
+    @Column(length = 20000)
     private String imageUrl;
 
     private Integer prepMinutes;
     private Integer servings;
-
-    private boolean favorite = false;
 
     @Embedded
     private Nutrition nutrition;
@@ -59,7 +53,6 @@ public class Recipe {
         updatedAt = Instant.now();
     }
 
-    // Helper, damit Ingredient automatisch die Recipe-Referenz bekommt
     public void setIngredients(List<Ingredient> newIngredients) {
         this.ingredients.clear();
         if (newIngredients != null) {
@@ -71,6 +64,7 @@ public class Recipe {
     }
 
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -92,9 +86,6 @@ public class Recipe {
 
     public Integer getServings() { return servings; }
     public void setServings(Integer servings) { this.servings = servings; }
-
-    public boolean isFavorite() { return favorite; }
-    public void setFavorite(boolean favorite) { this.favorite = favorite; }
 
     public Nutrition getNutrition() { return nutrition; }
     public void setNutrition(Nutrition nutrition) { this.nutrition = nutrition; }

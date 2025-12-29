@@ -1,11 +1,18 @@
 package com.example.rezeptapp.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(
-        name = "users",
-        uniqueConstraints = @UniqueConstraint(name = "uk_users_username", columnNames = "username")
+        name = "app_users",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_app_users_username",
+                columnNames = "username"
+        )
 )
 public class UserAccount {
 
@@ -13,11 +20,26 @@ public class UserAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 60) // BCrypt-Hash ist ~60 Zeichen
-    private String passwordHash;
-
     @Column(nullable = false, length = 50)
     private String username;
+
+    @JsonIgnore
+    @Column(nullable = false, length = 60)
+    private String passwordHash;
+
+    // super simpel: Token wird bei login gesetzt, bei logout gelöscht
+    @JsonIgnore
+    @Column(length = 64)
+    private String authToken;
+
+    @JsonIgnore
+    @ManyToMany
+    @JoinTable(
+            name = "app_user_favorites",
+            joinColumns = @JoinColumn(name = "app_user_id"),
+            inverseJoinColumns = @JoinColumn(name = "recipe_id")
+    )
+    private Set<Recipe> favorites = new HashSet<>();
 
     public UserAccount() {}
 
@@ -26,11 +48,18 @@ public class UserAccount {
         this.passwordHash = passwordHash;
     }
 
-    public Long getId() { return id; }
-    public String getPasswordHash() { return passwordHash; }
-    public String getUsername() { return username; }
+    // ===== Getter / Setter =====
 
-    public void setId(Long id) { this.id = id; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public Long getId() { return id; }
+
+    public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getAuthToken() { return authToken; }
+    public void setAuthToken(String authToken) { this.authToken = authToken; }
+
+    public Set<Recipe> getFavorites() { return favorites; }
 }

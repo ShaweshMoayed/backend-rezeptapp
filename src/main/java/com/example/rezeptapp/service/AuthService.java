@@ -5,6 +5,8 @@ import com.example.rezeptapp.repository.UserAccountRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class AuthService {
 
@@ -31,9 +33,30 @@ public class AuthService {
         userRepo.save(new UserAccount(username, hash));
     }
 
-    public boolean login(String username, String plainPassword) {
-        return userRepo.findByUsername(username)
-                .map(user -> encoder.matches(plainPassword, user.getPasswordHash()))
-                .orElse(false);
+    public String loginAndCreateToken(String username, String plainPassword) {
+        UserAccount user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("invalid credentials"));
+
+        if (!encoder.matches(plainPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("invalid credentials");
+        }
+
+        String token = UUID.randomUUID().toString();
+        user.setAuthToken(token);
+        userRepo.save(user);
+
+        return token;
+    }
+
+    public void logout(String token) {
+        userRepo.findByAuthToken(token).ifPresent(u -> {
+            u.setAuthToken(null);
+            userRepo.save(u);
+        });
+    }
+
+    public UserAccount requireUser(String token) {
+        return userRepo.findByAuthToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("unauthorized"));
     }
 }
