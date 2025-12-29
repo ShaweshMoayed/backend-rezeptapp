@@ -3,8 +3,6 @@ package com.example.rezeptapp.service;
 import com.example.rezeptapp.model.Ingredient;
 import com.example.rezeptapp.model.Recipe;
 import com.example.rezeptapp.repository.RecipeRepository;
-import com.example.rezeptapp.repository.RecipeSpecifications;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,21 +17,13 @@ public class RecipeService {
         this.repo = repo;
     }
 
-    // ✅ GET /rezeptapp + Filter optional
+    // ✅ GET /rezeptapp?search=...&category=...&favorite=true
     public List<Recipe> findAll(String search, String category, Boolean favorite) {
-        Specification<Recipe> spec = Specification.where(null);
+        // "blank" zu null/"" normalisieren, damit Query sauber funktioniert
+        if (search != null && search.isBlank()) search = "";
+        if (category != null && category.isBlank()) category = "";
 
-        if (search != null && !search.isBlank()) {
-            spec = spec.and(RecipeSpecifications.titleOrDescriptionContains(search));
-        }
-        if (category != null && !category.isBlank()) {
-            spec = spec.and(RecipeSpecifications.hasCategory(category));
-        }
-        if (favorite != null) {
-            spec = spec.and(RecipeSpecifications.isFavorite(favorite));
-        }
-
-        return repo.findAll(spec);
+        return repo.search(search, category, favorite);
     }
 
     public Recipe findById(Long id) {
@@ -43,7 +33,7 @@ public class RecipeService {
 
     @Transactional
     public Recipe create(Recipe recipe) {
-        // Zutaten korrekt verknüpfen (wichtig wegen recipe_id)
+        // Zutaten korrekt verknüpfen (recipe_id setzen)
         if (recipe.getIngredients() != null) {
             for (Ingredient ing : recipe.getIngredients()) {
                 ing.setRecipe(recipe);
@@ -66,7 +56,7 @@ public class RecipeService {
         existing.setFavorite(incoming.isFavorite());
         existing.setNutrition(incoming.getNutrition());
 
-        // Zutaten: komplett ersetzen (simpel & zuverlässig)
+        // Zutaten komplett ersetzen (inkl. Back-Reference)
         existing.setIngredients(incoming.getIngredients());
 
         return repo.save(existing);
