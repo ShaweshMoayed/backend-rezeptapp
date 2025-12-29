@@ -1,7 +1,7 @@
 package com.example.rezeptapp.service;
 
-import com.example.rezeptapp.model.Rezept;
-import com.example.rezeptapp.repository.RezeptRepository;
+import com.example.rezeptapp.model.Recipe;
+import com.example.rezeptapp.repository.RecipeRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -9,17 +9,17 @@ import java.util.List;
 @Service
 public class RezeptService {
 
-    private final RezeptRepository rezeptRepository;
+    private final RecipeRepository recipeRepository;
 
-    public RezeptService(RezeptRepository rezeptRepository) {
-        this.rezeptRepository = rezeptRepository;
+    public RezeptService(RecipeRepository recipeRepository) {
+        this.recipeRepository = recipeRepository;
     }
 
-    public List<Rezept> findAll() {
-        return rezeptRepository.findAll();
+    public List<Recipe> findAll() {
+        return recipeRepository.findAll();
     }
 
-    public Rezept create(Rezept rezept) {
-        return rezeptRepository.save(rezept);
+    public Recipe create(Recipe rezept) {
+        return recipeRepository.save(rezept);
     }
 }
