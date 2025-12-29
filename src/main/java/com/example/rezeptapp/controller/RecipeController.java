@@ -1,8 +1,6 @@
 package com.example.rezeptapp.controller;
 
-import com.example.rezeptapp.dto.RecipeCreateRequest;
-import com.example.rezeptapp.dto.RecipeResponse;
-import com.example.rezeptapp.dto.RecipeUpdateRequest;
+import com.example.rezeptapp.model.Recipe;
 import com.example.rezeptapp.service.RecipeService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -10,46 +8,46 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/recipes")
+@RequestMapping("/rezeptapp")
 public class RecipeController {
 
-    private final RecipeService service;
+    private final RecipeService recipeService;
 
-    public RecipeController(RecipeService service) {
-        this.service = service;
+    public RecipeController(RecipeService recipeService) {
+        this.recipeService = recipeService;
     }
 
-    // GET /api/recipes?search=...&category=...&favorite=true
+    // ✅ GET /rezeptapp?search=...&category=...&favorite=true
     @GetMapping
-    public List<RecipeResponse> getAll(
+    public List<Recipe> getAllRecipes(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Boolean favorite
     ) {
-        return service.findAll(search, category, favorite);
+        return recipeService.findAll(search, category, favorite);
     }
 
-    // GET /api/recipes/{id}
+    // ✅ GET /rezeptapp/{id}
     @GetMapping("/{id}")
-    public RecipeResponse getById(@PathVariable Long id) {
-        return service.findById(id);
+    public Recipe getRecipeById(@PathVariable Long id) {
+        return recipeService.findById(id);
     }
 
-    // POST /api/recipes
+    // ✅ POST /rezeptapp
     @PostMapping
-    public RecipeResponse create(@Valid @RequestBody RecipeCreateRequest request) {
-        return service.create(request);
+    public Recipe createRecipe(@Valid @RequestBody Recipe recipe) {
+        return recipeService.create(recipe);
     }
 
-    // PUT /api/recipes/{id}
+    // ✅ PUT /rezeptapp/{id}
     @PutMapping("/{id}")
-    public RecipeResponse update(@PathVariable Long id, @Valid @RequestBody RecipeUpdateRequest request) {
-        return service.update(id, request);
+    public Recipe updateRecipe(@PathVariable Long id, @Valid @RequestBody Recipe recipe) {
+        return recipeService.update(id, recipe);
     }
 
-    // DELETE /api/recipes/{id}
+    // ✅ DELETE /rezeptapp/{id}
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        service.delete(id);
+    public void deleteRecipe(@PathVariable Long id) {
+        recipeService.delete(id);
     }
 }

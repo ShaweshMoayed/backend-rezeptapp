@@ -1,9 +1,6 @@
 package com.example.rezeptapp.service;
 
-import com.example.rezeptapp.dto.RecipeCreateRequest;
-import com.example.rezeptapp.dto.RecipeResponse;
-import com.example.rezeptapp.dto.RecipeUpdateRequest;
-import com.example.rezeptapp.mapper.RecipeMapper;
+import com.example.rezeptapp.model.Ingredient;
 import com.example.rezeptapp.model.Recipe;
 import com.example.rezeptapp.repository.RecipeRepository;
 import com.example.rezeptapp.repository.RecipeSpecifications;
@@ -22,7 +19,8 @@ public class RecipeService {
         this.repo = repo;
     }
 
-    public List<RecipeResponse> findAll(String search, String category, Boolean favorite) {
+    // ✅ GET /rezeptapp + Filter optional
+    public List<Recipe> findAll(String search, String category, Boolean favorite) {
         Specification<Recipe> spec = Specification.where(null);
 
         if (search != null && !search.isBlank()) {
@@ -35,56 +33,43 @@ public class RecipeService {
             spec = spec.and(RecipeSpecifications.isFavorite(favorite));
         }
 
-        return repo.findAll(spec).stream()
-                .map(RecipeMapper::toResponse)
-                .toList();
+        return repo.findAll(spec);
     }
 
-    public RecipeResponse findById(Long id) {
-        Recipe r = repo.findById(id)
+    public Recipe findById(Long id) {
+        return repo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Recipe nicht gefunden: " + id));
-        return RecipeMapper.toResponse(r);
     }
 
     @Transactional
-    public RecipeResponse create(RecipeCreateRequest req) {
-        Recipe r = new Recipe();
-        r.setTitle(req.title());
-        r.setDescription(req.description());
-        r.setInstructions(req.instructions());
-        r.setCategory(req.category());
-        r.setImageUrl(req.imageUrl());
-        r.setPrepMinutes(req.prepMinutes());
-        r.setServings(req.servings());
-        r.setFavorite(req.favorite() != null && req.favorite());
-        r.setNutrition(RecipeMapper.toNutrition(req.nutrition()));
-        r.setIngredients(RecipeMapper.toIngredients(req.ingredients()));
-
-        Recipe saved = repo.save(r);
-        return RecipeMapper.toResponse(saved);
-    }
-
-    @Transactional
-    public RecipeResponse update(Long id, RecipeUpdateRequest req) {
-        Recipe r = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Recipe nicht gefunden: " + id));
-
-        if (req.title() != null) r.setTitle(req.title());
-        if (req.description() != null) r.setDescription(req.description());
-        if (req.instructions() != null) r.setInstructions(req.instructions());
-        if (req.category() != null) r.setCategory(req.category());
-        if (req.imageUrl() != null) r.setImageUrl(req.imageUrl());
-        if (req.prepMinutes() != null) r.setPrepMinutes(req.prepMinutes());
-        if (req.servings() != null) r.setServings(req.servings());
-        if (req.favorite() != null) r.setFavorite(req.favorite());
-        if (req.nutrition() != null) r.setNutrition(RecipeMapper.toNutrition(req.nutrition()));
-
-        // Zutaten: wenn übergeben, ersetzen wir komplett (simpel & zuverlässig)
-        if (req.ingredients() != null) {
-            r.setIngredients(RecipeMapper.toIngredients(req.ingredients()));
+    public Recipe create(Recipe recipe) {
+        // Zutaten korrekt verknüpfen (wichtig wegen recipe_id)
+        if (recipe.getIngredients() != null) {
+            for (Ingredient ing : recipe.getIngredients()) {
+                ing.setRecipe(recipe);
+            }
         }
+        return repo.save(recipe);
+    }
 
-        return RecipeMapper.toResponse(repo.save(r));
+    @Transactional
+    public Recipe update(Long id, Recipe incoming) {
+        Recipe existing = findById(id);
+
+        existing.setTitle(incoming.getTitle());
+        existing.setDescription(incoming.getDescription());
+        existing.setInstructions(incoming.getInstructions());
+        existing.setCategory(incoming.getCategory());
+        existing.setImageUrl(incoming.getImageUrl());
+        existing.setPrepMinutes(incoming.getPrepMinutes());
+        existing.setServings(incoming.getServings());
+        existing.setFavorite(incoming.isFavorite());
+        existing.setNutrition(incoming.getNutrition());
+
+        // Zutaten: komplett ersetzen (simpel & zuverlässig)
+        existing.setIngredients(incoming.getIngredients());
+
+        return repo.save(existing);
     }
 
     @Transactional

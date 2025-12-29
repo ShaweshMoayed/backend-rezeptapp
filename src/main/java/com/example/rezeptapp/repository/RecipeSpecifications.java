@@ -16,7 +16,8 @@ public class RecipeSpecifications {
     }
 
     public static Specification<Recipe> hasCategory(String category) {
-        return (root, query, cb) -> cb.equal(cb.lower(root.get("category")), category.toLowerCase());
+        return (root, query, cb) ->
+                cb.equal(cb.lower(root.get("category")), category.toLowerCase());
     }
 
     public static Specification<Recipe> isFavorite(boolean fav) {
