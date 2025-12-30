@@ -31,7 +31,6 @@ public class RecipeController {
         this.authService = authService;
     }
 
-    // ✅ GET /rezeptapp?search=...&category=...
     @GetMapping
     public List<Recipe> getAllRecipes(
             @RequestParam(required = false) String search,
@@ -40,37 +39,31 @@ public class RecipeController {
         return recipeService.findAll(search, category);
     }
 
-    // ✅ GET /rezeptapp/categories
     @GetMapping("/categories")
     public List<String> getCategories() {
         return recipeService.getAllCategories();
     }
 
-    // ✅ GET /rezeptapp/{id}
     @GetMapping("/{id}")
     public Recipe getRecipeById(@PathVariable Long id) {
         return recipeService.findById(id);
     }
 
-    // ✅ POST /rezeptapp
     @PostMapping
     public Recipe createRecipe(@Valid @RequestBody Recipe recipe) {
         return recipeService.create(recipe);
     }
 
-    // ✅ PUT /rezeptapp/{id}
     @PutMapping("/{id}")
     public Recipe updateRecipe(@PathVariable Long id, @Valid @RequestBody Recipe recipe) {
         return recipeService.update(id, recipe);
     }
 
-    // ✅ DELETE /rezeptapp/{id}
     @DeleteMapping("/{id}")
     public void deleteRecipe(@PathVariable Long id) {
         recipeService.delete(id);
     }
 
-    // ✅ GET /rezeptapp/{id}/pdf
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
         Recipe recipe = recipeService.findById(id);
@@ -88,32 +81,26 @@ public class RecipeController {
                 .body(pdf);
     }
 
-    // =========================
-    // ✅ Favoriten (pro User)
-    // =========================
+    // ===== Favoriten =====
 
-    // ✅ GET /rezeptapp/favorites
     @GetMapping("/favorites")
     public List<Recipe> getMyFavorites(@RequestHeader("Authorization") String authHeader) {
         UserAccount user = requireUserFromHeader(authHeader);
         return recipeService.getFavorites(user);
     }
 
-    // ✅ GET /rezeptapp/favorites/ids
     @GetMapping("/favorites/ids")
     public List<Long> getMyFavoriteIds(@RequestHeader("Authorization") String authHeader) {
         UserAccount user = requireUserFromHeader(authHeader);
         return recipeService.getFavoriteIds(user);
     }
 
-    // ✅ POST /rezeptapp/{id}/favorite
     @PostMapping("/{id}/favorite")
     public void addFavorite(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
         UserAccount user = requireUserFromHeader(authHeader);
         recipeService.addFavorite(user, id);
     }
 
-    // ✅ DELETE /rezeptapp/{id}/favorite
     @DeleteMapping("/{id}/favorite")
     public void removeFavorite(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
         UserAccount user = requireUserFromHeader(authHeader);

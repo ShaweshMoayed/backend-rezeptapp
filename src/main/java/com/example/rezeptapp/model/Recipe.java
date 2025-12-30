@@ -1,10 +1,13 @@
 package com.example.rezeptapp.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "recipes")
@@ -14,20 +17,35 @@ public class Recipe {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    // ✅ Pflicht (wenig & sinnvoll)
+    @NotBlank(message = "title darf nicht leer sein")
+    @Size(min = 2, max = 120, message = "title muss 2-120 Zeichen haben")
+    @Column(nullable = false, length = 120)
     private String title;
 
+    // ✅ Pflicht (wenig & sinnvoll)
+    @NotBlank(message = "description darf nicht leer sein")
+    @Size(min = 3, max = 2000, message = "description muss 3-2000 Zeichen haben")
     @Column(nullable = false, length = 2000)
     private String description;
 
+    // optional
     @Column(length = 10000)
     private String instructions;
 
+    // optional
     private String category;
 
+    // optional: externer Link
     @Column(length = 20000)
     private String imageUrl;
 
+    // optional: Base64 ("data:image/...;base64,..." oder nur base64)
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String imageBase64;
+
+    // optional
     private Integer prepMinutes;
     private Integer servings;
 
@@ -53,6 +71,7 @@ public class Recipe {
         updatedAt = Instant.now();
     }
 
+    // Zutaten sauber setzen (Back-Reference recipe_id)
     public void setIngredients(List<Ingredient> newIngredients) {
         this.ingredients.clear();
         if (newIngredients != null) {
@@ -62,6 +81,8 @@ public class Recipe {
             }
         }
     }
+
+    // ===== Getter / Setter =====
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -81,6 +102,9 @@ public class Recipe {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
+    public String getImageBase64() { return imageBase64; }
+    public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; }
+
     public Integer getPrepMinutes() { return prepMinutes; }
     public void setPrepMinutes(Integer prepMinutes) { this.prepMinutes = prepMinutes; }
 
@@ -94,4 +118,17 @@ public class Recipe {
 
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    // wichtig für Set<Recipe> favorites
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Recipe other)) return false;
+        return id != null && Objects.equals(id, other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
+    }
 }

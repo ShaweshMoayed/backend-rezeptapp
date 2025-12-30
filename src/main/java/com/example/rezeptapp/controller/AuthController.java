@@ -50,6 +50,10 @@ public class AuthController {
         if (authHeader == null) throw new IllegalArgumentException("unauthorized");
         String prefix = "Bearer ";
         if (!authHeader.startsWith(prefix)) throw new IllegalArgumentException("unauthorized");
-        return authHeader.substring(prefix.length()).trim();
+
+        String token = authHeader.substring(prefix.length()).trim();
+        if (token.isEmpty()) throw new IllegalArgumentException("unauthorized");
+
+        return token;
     }
 }

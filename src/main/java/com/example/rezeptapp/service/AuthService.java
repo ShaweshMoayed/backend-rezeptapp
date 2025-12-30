@@ -56,7 +56,7 @@ public class AuthService {
     }
 
     public UserAccount requireUser(String token) {
-        return userRepo.findByAuthToken(token)
+        return userRepo.findWithFavoritesByAuthToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("unauthorized"));
     }
 }

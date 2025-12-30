@@ -22,7 +22,6 @@ public class RecipeService {
         this.userRepo = userRepo;
     }
 
-    // ✅ GET /rezeptapp?search=&category=   (favorite gehört NICHT mehr hier rein)
     public List<Recipe> findAll(String search, String category) {
         boolean hasSearch = search != null && !search.isBlank();
         boolean hasCategory = category != null && !category.isBlank();
@@ -30,13 +29,11 @@ public class RecipeService {
         if (!hasSearch && !hasCategory) return repo.findAll();
 
         if (hasCategory && hasSearch) {
-            return repo.findByCategoryIgnoreCaseAndTitleContainingIgnoreCaseOrCategoryIgnoreCaseAndDescriptionContainingIgnoreCase(
-                    category, search, category, search
-            );
+            return repo.searchInCategory(category.trim(), search.trim());
         }
-        if (hasCategory) return repo.findByCategoryIgnoreCase(category);
+        if (hasCategory) return repo.findByCategoryIgnoreCase(category.trim());
 
-        return repo.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(search, search);
+        return repo.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(search.trim(), search.trim());
     }
 
     public Recipe findById(Long id) {
@@ -46,6 +43,7 @@ public class RecipeService {
 
     @Transactional
     public Recipe create(Recipe recipe) {
+        // falls Jackson direkt in die Liste schreibt: Backrefs sicher setzen
         if (recipe.getIngredients() != null) {
             for (Ingredient ing : recipe.getIngredients()) {
                 ing.setRecipe(recipe);
@@ -62,7 +60,10 @@ public class RecipeService {
         existing.setDescription(incoming.getDescription());
         existing.setInstructions(incoming.getInstructions());
         existing.setCategory(incoming.getCategory());
+
         existing.setImageUrl(incoming.getImageUrl());
+        existing.setImageBase64(incoming.getImageBase64());
+
         existing.setPrepMinutes(incoming.getPrepMinutes());
         existing.setServings(incoming.getServings());
         existing.setNutrition(incoming.getNutrition());
@@ -77,9 +78,7 @@ public class RecipeService {
         repo.deleteById(id);
     }
 
-    // =========================
-    // ✅ Favoriten pro User
-    // =========================
+    // ===== Favoriten pro User =====
 
     @Transactional(readOnly = true)
     public List<Recipe> getFavorites(UserAccount user) {
@@ -107,12 +106,6 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public List<String> getAllCategories() {
-        return repo.findAll().stream()
-                .map(Recipe::getCategory)
-                .filter(c -> c != null && !c.isBlank())
-                .map(String::trim)
-                .distinct()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toList();
+        return repo.findAllCategories();
     }
 }

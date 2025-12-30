@@ -2,6 +2,8 @@ package com.example.rezeptapp.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "ingredients")
@@ -11,13 +13,16 @@ public class Ingredient {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    // ✅ Pflicht
+    @NotBlank(message = "ingredient.name darf nicht leer sein")
+    @Size(min = 1, max = 120, message = "ingredient.name muss 1-120 Zeichen haben")
+    @Column(nullable = false, length = 120)
     private String name;
 
-    // z.B. "200"
+    // optional
     private String amount;
 
-    // z.B. "g", "ml", "EL"
+    // optional
     private String unit;
 
     @ManyToOne(fetch = FetchType.LAZY)

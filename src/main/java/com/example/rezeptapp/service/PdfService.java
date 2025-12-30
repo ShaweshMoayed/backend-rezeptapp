@@ -5,16 +5,16 @@ import com.example.rezeptapp.model.Nutrition;
 import com.example.rezeptapp.model.Recipe;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
-
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 @Service
 public class PdfService {
@@ -31,37 +31,30 @@ public class PdfService {
             PdfWriter.getInstance(doc, out);
             doc.open();
 
-            // Header
             Paragraph header = new Paragraph("RezeptApp", MUTED);
             header.setAlignment(Element.ALIGN_RIGHT);
             doc.add(header);
 
-            Paragraph title = new Paragraph(recipe.getTitle() != null ? recipe.getTitle() : "Rezept", TITLE);
+            Paragraph title = new Paragraph(safe(recipe.getTitle(), "Rezept"), TITLE);
             title.setSpacingBefore(6);
             title.setSpacingAfter(10);
             doc.add(title);
 
-            // Bild (optional)
             addRecipeImageIfPossible(doc, recipe);
 
-            // Meta-Infos (Kategorie, Portionen, Zeit)
             doc.add(metaBlock(recipe));
 
-            // Zutaten
             doc.add(sectionTitle("Zutaten"));
             doc.add(ingredientsTable(recipe));
 
-            // Nährwerte
             if (recipe.getNutrition() != null) {
                 doc.add(sectionTitle("Nährwerte (pro Portion, wenn bekannt)"));
                 doc.add(nutritionTable(recipe.getNutrition()));
             }
 
-            // Anleitung
             doc.add(sectionTitle("Zubereitung"));
             doc.add(instructionsBlock(recipe));
 
-            // Footer
             doc.add(Chunk.NEWLINE);
             Paragraph footer = new Paragraph("Erstellt mit RezeptApp • PDF-Export", MUTED);
             footer.setAlignment(Element.ALIGN_CENTER);
@@ -76,10 +69,18 @@ public class PdfService {
 
     private void addRecipeImageIfPossible(Document doc, Recipe recipe) {
         try {
-            if (recipe.getImageUrl() == null || recipe.getImageUrl().isBlank()) return;
+            byte[] bytes = null;
 
-            // Robust: erst per HttpClient laden (funktioniert bei vielen Hosts besser)
-            byte[] bytes = downloadImage(recipe.getImageUrl());
+            // 1) Base64 bevorzugen
+            if (recipe.getImageBase64() != null && !recipe.getImageBase64().isBlank()) {
+                bytes = decodeBase64Image(recipe.getImageBase64());
+            }
+
+            // 2) sonst URL
+            if ((bytes == null || bytes.length == 0) && recipe.getImageUrl() != null && !recipe.getImageUrl().isBlank()) {
+                bytes = downloadImage(recipe.getImageUrl());
+            }
+
             if (bytes == null || bytes.length == 0) return;
 
             Image img = Image.getInstance(bytes);
@@ -99,27 +100,33 @@ public class PdfService {
             frame.setSpacingAfter(12);
             doc.add(frame);
         } catch (Exception ignored) {
-            // Wenn Bild nicht lädt: PDF trotzdem erzeugen (kein Abbruch)
+            // Bild optional -> PDF trotzdem erzeugen
+        }
+    }
+
+    private byte[] decodeBase64Image(String base64) {
+        try {
+            // falls jemand "data:image/png;base64,...." schickt
+            int comma = base64.indexOf(',');
+            String clean = (comma >= 0) ? base64.substring(comma + 1) : base64;
+            clean = clean.trim();
+            return Base64.getDecoder().decode(clean);
+        } catch (Exception e) {
+            return null;
         }
     }
 
     private byte[] downloadImage(String url) {
         try {
-            // Fallback: wenn URL direkt geht
-            if (url.startsWith("http")) {
-                HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
-                HttpRequest req = HttpRequest.newBuilder(URI.create(url))
-                        .header("User-Agent", "RezeptApp/1.0")
-                        .GET()
-                        .build();
+            HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
+            HttpRequest req = HttpRequest.newBuilder(URI.create(url))
+                    .header("User-Agent", "RezeptApp/1.0")
+                    .GET()
+                    .build();
 
-                HttpResponse<byte[]> resp = client.send(req, HttpResponse.BodyHandlers.ofByteArray());
-                if (resp.statusCode() >= 200 && resp.statusCode() < 300) return resp.body();
-                return null;
-            }
-
-            // Wenn jemand später file:/ oder classpath: nutzen will -> hier erweitern
-            return Image.getInstance(new URL(url)).getRawData();
+            HttpResponse<byte[]> resp = client.send(req, HttpResponse.BodyHandlers.ofByteArray());
+            if (resp.statusCode() >= 200 && resp.statusCode() < 300) return resp.body();
+            return null;
         } catch (Exception e) {
             return null;
         }

@@ -27,7 +27,6 @@ public class UserAccount {
     @Column(nullable = false, length = 60)
     private String passwordHash;
 
-    // super simpel: Token wird bei login gesetzt, bei logout gelöscht
     @JsonIgnore
     @Column(length = 64)
     private String authToken;
@@ -48,9 +47,8 @@ public class UserAccount {
         this.passwordHash = passwordHash;
     }
 
-    // ===== Getter / Setter =====
-
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }

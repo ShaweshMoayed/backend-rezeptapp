@@ -2,6 +2,8 @@ package com.example.rezeptapp.repository;
 
 import com.example.rezeptapp.model.Recipe;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -11,8 +13,21 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     List<Recipe> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String title, String description);
 
-    List<Recipe> findByCategoryIgnoreCaseAndTitleContainingIgnoreCaseOrCategoryIgnoreCaseAndDescriptionContainingIgnoreCase(
-            String category1, String title,
-            String category2, String description
-    );
+    @Query("""
+        SELECT r FROM Recipe r
+        WHERE lower(r.category) = lower(:category)
+          AND (
+                lower(r.title) LIKE lower(concat('%', :search, '%'))
+             OR lower(r.description) LIKE lower(concat('%', :search, '%'))
+          )
+        """)
+    List<Recipe> searchInCategory(@Param("category") String category, @Param("search") String search);
+
+    @Query("""
+        SELECT DISTINCT trim(r.category)
+        FROM Recipe r
+        WHERE r.category IS NOT NULL AND trim(r.category) <> ''
+        ORDER BY lower(trim(r.category))
+        """)
+    List<String> findAllCategories();
 }
