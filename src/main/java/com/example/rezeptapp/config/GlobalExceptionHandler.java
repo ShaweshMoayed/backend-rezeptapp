@@ -2,6 +2,7 @@ package com.example.rezeptapp.config;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -15,6 +16,15 @@ public class GlobalExceptionHandler {
             String error,
             String message
     ) {}
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
+        String msg = "validation error";
+        if (ex.getBindingResult().getFieldError() != null) {
+            msg = ex.getBindingResult().getFieldError().getDefaultMessage();
+        }
+        return build(HttpStatus.BAD_REQUEST, msg);
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
