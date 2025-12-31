@@ -1,4 +1,3 @@
-// src/main/java/com/example/rezeptapp/config/DataSeeder.java
 package com.example.rezeptapp.config;
 
 import com.example.rezeptapp.model.Ingredient;
@@ -19,20 +18,35 @@ public class DataSeeder {
         return args -> {
             if (recipeRepository.count() > 0) return;
 
+            // ===== 1) Carbonara =====
             Recipe r1 = new Recipe();
             r1.setTitle("Spaghetti Carbonara");
             r1.setDescription("Klassisch cremig – ohne Sahne, nur Ei & Parmesan.");
             r1.setInstructions("""
-                    1) Wasser salzen, Pasta kochen.
-                    2) Speck anbraten.
-                    3) Ei + Parmesan verrühren.
-                    4) Pasta abgießen, mit Speck mischen.
-                    5) Topf vom Herd, Eiermix einrühren, pfeffern.
+                    1) Wasser & Pasta:
+                       Einen großen Topf mit Wasser zum Kochen bringen und kräftig salzen (es sollte „wie Meerwasser“ schmecken).
+                       Spaghetti hineingeben und nach Packungsangabe al dente kochen. Hebe am Ende 1–2 Kellen Nudelwasser auf.
+
+                    2) Speck/Guanciale:
+                       Guanciale oder Speck in Würfel schneiden. In einer Pfanne ohne extra Öl bei mittlerer Hitze langsam auslassen,
+                       bis er goldbraun und knusprig ist. Pfanne dann vom Herd ziehen.
+
+                    3) Eier-Parmesan-Mix:
+                       Eier in einer Schüssel verquirlen und den fein geriebenen Parmesan einrühren.
+                       Großzügig mit frisch gemahlenem Pfeffer würzen. (Kein Salz nötig – Speck & Käse sind schon salzig.)
+
+                    4) Alles verbinden:
+                       Spaghetti abgießen und direkt zur Pfanne mit dem Speck geben. Kurz durchschwenken.
+                       Jetzt etwas Nudelwasser hinzufügen (für Cremigkeit).
+
+                    5) Cremig machen (wichtig!):
+                       Pfanne vom Herd lassen, dann erst den Eier-Parmesan-Mix zügig unterrühren.
+                       Bei Bedarf schluckweise Nudelwasser zugeben, bis eine seidige, cremige Sauce entsteht.
+                       Sofort servieren und mit extra Parmesan & Pfeffer toppen.
                     """);
             r1.setCategory("Pasta");
             r1.setServings(2);
             r1.setPrepMinutes(25);
-            // ✅ KEIN imageUrl / imageBase64 mehr (Frontend nimmt lokale Bilder)
 
             Nutrition n1 = new Nutrition();
             n1.setCaloriesKcal(760);
@@ -49,19 +63,35 @@ public class DataSeeder {
                     ing("Pfeffer", "1", "TL")
             ));
 
+            // ===== 2) Veggie Bowl =====
             Recipe r2 = new Recipe();
             r2.setTitle("Veggie Bowl");
             r2.setDescription("Frisch, gesund, schnell – ideal fürs Meal-Prep.");
             r2.setInstructions("""
-                    1) Quinoa kochen.
-                    2) Gemüse schneiden.
-                    3) Alles in Schüssel anrichten.
-                    4) Dressing darüber, toppen.
+                    1) Quinoa vorbereiten:
+                       Quinoa in einem Sieb gründlich abspülen (nimmt Bitterstoffe weg).
+                       Dann mit Wasser im Verhältnis ca. 1:2 aufkochen und 12–15 Minuten sanft köcheln lassen,
+                       bis die Körner gar sind. Anschließend 5 Minuten abgedeckt ruhen lassen und mit einer Gabel auflockern.
+
+                    2) Kichererbsen & Gemüse:
+                       Kichererbsen abgießen, abspülen und gut abtropfen lassen.
+                       Tomaten halbieren, Avocado in Scheiben schneiden. Optional kannst du Gurke, Paprika oder Rotkohl ergänzen.
+
+                    3) Einfaches Zitronen-Dressing:
+                       Zitrone auspressen und den Saft mit etwas Salz und Pfeffer mischen.
+                       Wenn du willst, kannst du noch einen kleinen Schuss Olivenöl oder etwas Joghurt dazugeben.
+
+                    4) Bowl anrichten:
+                       Quinoa als Basis in eine Schüssel geben. Kichererbsen, Tomaten und Avocado darauf verteilen.
+                       Mit dem Dressing beträufeln und nach Geschmack mit Kräutern (z.B. Petersilie) toppen.
+
+                    5) Meal-Prep Tipp:
+                       Fürs Mitnehmen: Quinoa & Kichererbsen getrennt vom frischen Gemüse lagern.
+                       Avocado erst kurz vor dem Essen schneiden, damit sie nicht braun wird.
                     """);
             r2.setCategory("Healthy");
             r2.setServings(2);
             r2.setPrepMinutes(20);
-            // ✅ KEIN imageUrl / imageBase64
 
             Nutrition n2 = new Nutrition();
             n2.setCaloriesKcal(520);
@@ -78,19 +108,36 @@ public class DataSeeder {
                     ing("Zitrone", "1", "Stk")
             ));
 
+            // ===== 3) Pancakes =====
             Recipe r3 = new Recipe();
             r3.setTitle("Pancakes mit Beeren");
             r3.setDescription("Fluffige Pancakes – perfekt fürs Wochenende.");
             r3.setInstructions("""
-                    1) Teig rühren.
-                    2) Pfanne leicht fetten.
-                    3) Pancakes ausbacken.
-                    4) Mit Beeren servieren.
+                    1) Teig mischen:
+                       Mehl und Backpulver in einer Schüssel vermengen.
+                       In einer zweiten Schüssel Eier mit Milch kurz verquirlen.
+                       Flüssigkeit zu den trockenen Zutaten geben und nur so lange rühren, bis keine Mehlnester mehr zu sehen sind
+                       (nicht zu lange rühren – sonst werden Pancakes zäh).
+
+                    2) Teig ruhen lassen:
+                       Den Teig 5–10 Minuten stehen lassen. In der Zeit kann das Backpulver arbeiten und macht sie fluffiger.
+
+                    3) Pfanne vorbereiten:
+                       Pfanne auf mittlere Hitze bringen und ganz leicht einfetten (z.B. ein kleines Stück Butter oder neutraler Ölspray).
+                       Wenn die Pfanne zu heiß ist, werden sie außen dunkel und innen nicht gar.
+
+                    4) Ausbacken:
+                       Pro Pancake eine kleine Kelle Teig in die Pfanne geben.
+                       Warten, bis sich viele kleine Bläschen bilden und die Ränder leicht trocken wirken – dann wenden.
+                       Zweite Seite 1–2 Minuten backen, bis sie goldbraun ist.
+
+                    5) Servieren:
+                       Mit Beeren toppen. Optional passt Joghurt oder etwas Ahornsirup super dazu.
+                       Wenn du sie warm halten willst: im Ofen bei ca. 80–100°C zwischenlagern.
                     """);
             r3.setCategory("Dessert");
             r3.setServings(3);
             r3.setPrepMinutes(20);
-            // ✅ KEIN imageUrl / imageBase64
 
             Nutrition n3 = new Nutrition();
             n3.setCaloriesKcal(610);

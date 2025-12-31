@@ -23,6 +23,7 @@ public class PdfService {
     private static final Color TEXT_MUTED = new Color(90, 90, 90);
 
     private static final Font TITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, BRAND);
+    private static final Font BOX_HEAD = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BRAND);
     private static final Font SUB = FontFactory.getFont(FontFactory.HELVETICA, 11, TEXT_MUTED);
     private static final Font H2 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, BRAND);
     private static final Font TEXT = FontFactory.getFont(FontFactory.HELVETICA, 11, Color.BLACK);
@@ -38,13 +39,10 @@ public class PdfService {
 
             doc.open();
 
-            // Header: Überschrift links + Logo rechts
-            doc.add(buildHeader());
+            // ✅ Titel-Box enthält jetzt auch "RezeptApp – Rezeptkarte" + Logo
+            doc.add(buildTitleBoxWithHeader(recipe));
 
-            // Titel + Datum + Description in Card
-            doc.add(buildTitleBlock(recipe));
-
-            // Bild: nur Base64 (keine externen URLs mehr)
+            // Bild: nur Base64 (keine externen URLs)
             addRecipeImageIfPossible(doc, recipe);
 
             // Meta-Karten (Kategorie / Portionen / Zeit)
@@ -71,41 +69,65 @@ public class PdfService {
         }
     }
 
-    // ===== Header (Text links, Logo rechts) =====
-    private Element buildHeader() {
-        PdfPTable t = new PdfPTable(new float[]{3.2f, 1f});
-        t.setWidthPercentage(100);
+    // ===== Titel-Box inkl. Header-Zeile + Logo =====
+    private Element buildTitleBoxWithHeader(Recipe recipe) {
+        PdfPTable outer = new PdfPTable(1);
+        outer.setWidthPercentage(100);
 
-        PdfPCell left = new PdfPCell();
+        PdfPCell box = new PdfPCell();
+        box.setBorderColor(BORDER);
+        box.setBorderWidth(1f);
+        box.setPadding(14f);
+        box.setBackgroundColor(Color.WHITE);
+
+        // Header-Zeile: links "RezeptApp – Rezeptkarte", rechts Logo (kein grauer Text mehr)
+        PdfPTable head = new PdfPTable(new float[]{3.2f, 1f});
+        head.setWidthPercentage(100);
+
+        PdfPCell left = new PdfPCell(new Phrase("RezeptApp – Rezeptkarte", BOX_HEAD));
         left.setBorder(Rectangle.NO_BORDER);
-        Paragraph app = new Paragraph(
-                "RezeptApp – Rezeptkarte",
-                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BRAND)
-        );
-        left.addElement(app);
 
         PdfPCell right = new PdfPCell();
         right.setBorder(Rectangle.NO_BORDER);
         right.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        right.setVerticalAlignment(Element.ALIGN_TOP);
 
         Image logo = loadLogo();
         if (logo != null) {
-            logo.scaleToFit(56, 56);
+            logo.scaleToFit(44, 44);
             logo.setAlignment(Image.ALIGN_RIGHT);
             right.addElement(logo);
+        } else {
+            // ✅ kein Ersatztext mehr (gewünscht)
+            right.addElement(new Phrase(""));
         }
-        // ✅ KEIN Fallback-Text mehr ("RezeptApp" grau) -> einfach leer lassen
 
-        t.addCell(left);
-        t.addCell(right);
+        head.addCell(left);
+        head.addCell(right);
+        head.setSpacingAfter(10);
 
-        t.setSpacingAfter(10);
-        return t;
+        // Titel + Datum + Beschreibung
+        Paragraph title = new Paragraph(safe(recipe.getTitle(), "Rezept"), TITLE);
+        title.setSpacingAfter(6);
+
+        Paragraph createdP = new Paragraph("Erstellt am " + formatCreatedAt(recipe), SUB);
+        createdP.setSpacingAfter(8);
+
+        String descTxt = safe(recipe.getDescription(), "").trim();
+        Paragraph desc = new Paragraph(descTxt, TEXT);
+        desc.setLeading(0, 1.25f);
+
+        box.addElement(head);
+        box.addElement(title);
+        box.addElement(createdP);
+        if (!descTxt.isBlank()) box.addElement(desc);
+
+        outer.addCell(box);
+        outer.setSpacingAfter(12);
+        return outer;
     }
 
     private Image loadLogo() {
-        // ✅ PNG aus: src/main/resources/static/logo.png
+        // ✅ Datei hier ablegen: src/main/resources/static/logo.png
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("static/logo.png")) {
             if (is == null) return null;
             byte[] bytes = is.readAllBytes();
@@ -113,37 +135,6 @@ public class PdfService {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    // ===== Titelblock =====
-    private Element buildTitleBlock(Recipe recipe) {
-        PdfPTable t = new PdfPTable(1);
-        t.setWidthPercentage(100);
-
-        PdfPCell c = new PdfPCell();
-        c.setBorderColor(BORDER);
-        c.setBorderWidth(1f);
-        c.setPadding(14f);
-        c.setBackgroundColor(Color.WHITE);
-
-        Paragraph title = new Paragraph(safe(recipe.getTitle(), "Rezept"), TITLE);
-        title.setSpacingAfter(6);
-
-        String created = formatCreatedAt(recipe);
-        Paragraph createdP = new Paragraph("Erstellt am " + created, SUB);
-        createdP.setSpacingAfter(8);
-
-        String descText = safe(recipe.getDescription(), "").trim();
-        Paragraph desc = new Paragraph(descText, TEXT);
-        desc.setLeading(0, 1.25f);
-
-        c.addElement(title);
-        c.addElement(createdP);
-        if (!descText.isBlank()) c.addElement(desc);
-
-        t.addCell(c);
-        t.setSpacingAfter(12);
-        return t;
     }
 
     private String formatCreatedAt(Recipe r) {
@@ -183,9 +174,7 @@ public class PdfService {
 
             frame.setSpacingAfter(12);
             doc.add(frame);
-        } catch (Exception ignored) {
-            // Bild optional
-        }
+        } catch (Exception ignored) {}
     }
 
     private byte[] decodeBase64Image(String base64) {
@@ -261,7 +250,7 @@ public class PdfService {
         return table;
     }
 
-    // ===== Nährwerte als Cards =====
+    // ===== Nährwerte Cards =====
     private Element nutritionCards(Nutrition n) {
         PdfPTable grid = new PdfPTable(new float[]{1f, 1f});
         grid.setWidthPercentage(70);
