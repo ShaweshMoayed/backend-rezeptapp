@@ -19,7 +19,6 @@ public class PdfService {
 
     // App-Farben (wie dein UI)
     private static final Color BRAND = new Color(47, 93, 76);          // #2f5d4c
-    private static final Color BRAND_SOFT = new Color(231, 238, 234);  // badge background
     private static final Color BORDER = new Color(235, 235, 235);
     private static final Color TEXT_MUTED = new Color(90, 90, 90);
 
@@ -42,7 +41,7 @@ public class PdfService {
             // Header: Überschrift links + Logo rechts
             doc.add(buildHeader());
 
-            // Titel + Datum
+            // Titel + Datum + Description in Card
             doc.add(buildTitleBlock(recipe));
 
             // Bild: nur Base64 (keine externen URLs mehr)
@@ -72,38 +71,42 @@ public class PdfService {
         }
     }
 
-    // ===== Header (Titel links, Logo rechts) =====
+    // ===== Header (Text links, Logo rechts) =====
     private Element buildHeader() {
         PdfPTable t = new PdfPTable(new float[]{3.2f, 1f});
         t.setWidthPercentage(100);
 
         PdfPCell left = new PdfPCell();
         left.setBorder(Rectangle.NO_BORDER);
-        Paragraph app = new Paragraph("RezeptApp – Rezeptkarte", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BRAND));
+        Paragraph app = new Paragraph(
+                "RezeptApp – Rezeptkarte",
+                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BRAND)
+        );
         left.addElement(app);
+
         PdfPCell right = new PdfPCell();
         right.setBorder(Rectangle.NO_BORDER);
         right.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        right.setVerticalAlignment(Element.ALIGN_TOP);
 
         Image logo = loadLogo();
         if (logo != null) {
             logo.scaleToFit(56, 56);
             logo.setAlignment(Image.ALIGN_RIGHT);
             right.addElement(logo);
-        } else {
-            Paragraph fallback = new Paragraph("RezeptApp", MUTED);
-            fallback.setAlignment(Element.ALIGN_RIGHT);
-            right.addElement(fallback);
         }
+        // ✅ KEIN Fallback-Text mehr ("RezeptApp" grau) -> einfach leer lassen
 
         t.addCell(left);
         t.addCell(right);
+
         t.setSpacingAfter(10);
         return t;
     }
 
     private Image loadLogo() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("static/logo.jpeg")) {
+        // ✅ PNG aus: src/main/resources/static/logo.png
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("static/logo.png")) {
             if (is == null) return null;
             byte[] bytes = is.readAllBytes();
             return Image.getInstance(bytes);
@@ -121,7 +124,7 @@ public class PdfService {
         c.setBorderColor(BORDER);
         c.setBorderWidth(1f);
         c.setPadding(14f);
-        c.setBackgroundColor(new Color(255, 255, 255));
+        c.setBackgroundColor(Color.WHITE);
 
         Paragraph title = new Paragraph(safe(recipe.getTitle(), "Rezept"), TITLE);
         title.setSpacingAfter(6);
@@ -130,12 +133,13 @@ public class PdfService {
         Paragraph createdP = new Paragraph("Erstellt am " + created, SUB);
         createdP.setSpacingAfter(8);
 
-        Paragraph desc = new Paragraph(safe(recipe.getDescription(), ""), TEXT);
+        String descText = safe(recipe.getDescription(), "").trim();
+        Paragraph desc = new Paragraph(descText, TEXT);
         desc.setLeading(0, 1.25f);
 
         c.addElement(title);
         c.addElement(createdP);
-        if (!desc.getContent().isBlank()) c.addElement(desc);
+        if (!descText.isBlank()) c.addElement(desc);
 
         t.addCell(c);
         t.setSpacingAfter(12);
@@ -145,7 +149,6 @@ public class PdfService {
     private String formatCreatedAt(Recipe r) {
         try {
             if (r.getCreatedAt() != null) {
-                // Instant -> Date
                 Date d = Date.from(r.getCreatedAt());
                 return new SimpleDateFormat("dd.MM.yyyy, HH:mm").format(d);
             }
@@ -162,7 +165,7 @@ public class PdfService {
                 bytes = decodeBase64Image(recipe.getImageBase64());
             }
 
-            // ❌ bewusst KEIN imageUrl-Download mehr (copyright + stabil)
+            // ❌ bewusst KEIN imageUrl-Download mehr
             if (bytes == null || bytes.length == 0) return;
 
             Image img = Image.getInstance(bytes);
@@ -214,7 +217,7 @@ public class PdfService {
         c.setBorderColor(BORDER);
         c.setBorderWidth(1f);
         c.setPadding(10f);
-        c.setBackgroundColor(new Color(255, 255, 255));
+        c.setBackgroundColor(Color.WHITE);
 
         Paragraph p1 = new Paragraph(label, MUTED);
         Paragraph p2 = new Paragraph(value, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Color.BLACK));
@@ -230,7 +233,7 @@ public class PdfService {
         return p;
     }
 
-    // ===== Zutaten-Tabelle (cleaner + brand header) =====
+    // ===== Zutaten-Tabelle =====
     private Element ingredientsTable(Recipe recipe) {
         PdfPTable table = new PdfPTable(new float[]{2.6f, 1f, 1f});
         table.setWidthPercentage(100);
@@ -258,7 +261,7 @@ public class PdfService {
         return table;
     }
 
-    // ===== Nährwerte als Cards (moderner als Tabelle) =====
+    // ===== Nährwerte als Cards =====
     private Element nutritionCards(Nutrition n) {
         PdfPTable grid = new PdfPTable(new float[]{1f, 1f});
         grid.setWidthPercentage(70);
@@ -277,7 +280,7 @@ public class PdfService {
         c.setBorderColor(BORDER);
         c.setBorderWidth(1f);
         c.setPadding(10f);
-        c.setBackgroundColor(new Color(255, 255, 255));
+        c.setBackgroundColor(Color.WHITE);
 
         Paragraph l = new Paragraph(label, MUTED);
         Paragraph v = new Paragraph(value, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, Color.BLACK));
@@ -288,7 +291,7 @@ public class PdfService {
         return c;
     }
 
-    // ===== Zubereitung (etwas mehr spacing / cleaner) =====
+    // ===== Zubereitung =====
     private Element instructionsBlock(Recipe recipe) {
         String instr = safe(recipe.getInstructions(), safe(recipe.getDescription(), "—"));
         Paragraph p = new Paragraph(instr, TEXT);
