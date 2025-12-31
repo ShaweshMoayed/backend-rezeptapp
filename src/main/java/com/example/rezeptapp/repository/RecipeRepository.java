@@ -23,11 +23,12 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         """)
     List<Recipe> searchInCategory(@Param("category") String category, @Param("search") String search);
 
+    // ✅ FIX: kein trim() in SELECT / ORDER BY (verhindert 500 auf einigen DBs/Providern)
     @Query("""
-        SELECT DISTINCT trim(r.category)
+        SELECT DISTINCT r.category
         FROM Recipe r
-        WHERE r.category IS NOT NULL AND trim(r.category) <> ''
-        ORDER BY lower(trim(r.category))
+        WHERE r.category IS NOT NULL AND r.category <> ''
+        ORDER BY lower(r.category)
         """)
     List<String> findAllCategories();
 }

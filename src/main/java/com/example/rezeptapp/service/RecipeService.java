@@ -106,6 +106,12 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public List<String> getAllCategories() {
-        return repo.findAllCategories();
+        // ✅ sauber trimmen + leere entfernen + doppelte vermeiden + sortieren
+        return repo.findAllCategories().stream()
+                .map(s -> s == null ? "" : s.trim())
+                .filter(s -> !s.isBlank())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
     }
 }
