@@ -31,7 +31,6 @@ public class DataSeeder {
             r1.setCategory("Pasta");
             r1.setServings(2);
             r1.setPrepMinutes(25);
-            r1.setImageUrl("https://images.unsplash.com/photo-1523986371872-9d3ba2e2f642?auto=format&fit=crop&w=1200&q=80");
 
             Nutrition n1 = new Nutrition();
             n1.setCaloriesKcal(760);
@@ -60,7 +59,6 @@ public class DataSeeder {
             r2.setCategory("Healthy");
             r2.setServings(2);
             r2.setPrepMinutes(20);
-            r2.setImageUrl("https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80");
 
             Nutrition n2 = new Nutrition();
             n2.setCaloriesKcal(520);
@@ -89,7 +87,6 @@ public class DataSeeder {
             r3.setCategory("Dessert");
             r3.setServings(3);
             r3.setPrepMinutes(20);
-            r3.setImageUrl("https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=1200&q=80");
 
             Nutrition n3 = new Nutrition();
             n3.setCaloriesKcal(610);
