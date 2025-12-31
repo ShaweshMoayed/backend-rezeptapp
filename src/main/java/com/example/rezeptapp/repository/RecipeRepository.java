@@ -9,9 +9,16 @@ import java.util.List;
 
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
+    // ===== Basis-Queries =====
+
     List<Recipe> findByCategoryIgnoreCase(String category);
 
-    List<Recipe> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String title, String description);
+    List<Recipe> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
+            String title,
+            String description
+    );
+
+    // ===== Suche mit Kategorie =====
 
     @Query("""
         SELECT r FROM Recipe r
@@ -21,13 +28,20 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
              OR lower(r.description) LIKE lower(concat('%', :search, '%'))
           )
         """)
-    List<Recipe> searchInCategory(@Param("category") String category, @Param("search") String search);
+    List<Recipe> searchInCategory(
+            @Param("category") String category,
+            @Param("search") String search
+    );
 
-    // ✅ FIX: kein trim() in SELECT / ORDER BY (verhindert 500 auf einigen DBs/Providern)
+    // ===== Kategorien (FIX für PostgreSQL) =====
+    // ❗ KEIN DISTINCT + ORDER BY lower(...)
+    // ❗ GROUP BY ist PostgreSQL-safe
     @Query("""
-        SELECT DISTINCT r.category
+        SELECT r.category
         FROM Recipe r
-        WHERE r.category IS NOT NULL AND r.category <> ''
+        WHERE r.category IS NOT NULL
+          AND r.category <> ''
+        GROUP BY r.category
         ORDER BY lower(r.category)
         """)
     List<String> findAllCategories();

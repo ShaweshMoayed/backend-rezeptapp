@@ -58,6 +58,9 @@ public class PdfService {
                 doc.add(nutritionCards(recipe.getNutrition()));
             }
 
+            // ✅ Zubereitung IMMER auf neuer Seite starten (damit sie nicht "halb" auf Seite 1 anfängt)
+            doc.newPage();
+
             // Zubereitung
             doc.add(sectionTitle("Zubereitung"));
             doc.add(instructionsBlock(recipe));
@@ -80,7 +83,7 @@ public class PdfService {
         box.setPadding(14f);
         box.setBackgroundColor(Color.WHITE);
 
-        // Header-Zeile: links "RezeptApp – Rezeptkarte", rechts Logo (kein grauer Text mehr)
+        // Header-Zeile: links "RezeptApp – Rezeptkarte", rechts Logo
         PdfPTable head = new PdfPTable(new float[]{3.2f, 1f});
         head.setWidthPercentage(100);
 
@@ -97,7 +100,6 @@ public class PdfService {
             logo.setAlignment(Image.ALIGN_RIGHT);
             right.addElement(logo);
         } else {
-            // ✅ kein Ersatztext mehr (gewünscht)
             right.addElement(new Phrase(""));
         }
 

@@ -1,14 +1,20 @@
 package com.example.rezeptapp.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     public record ApiError(
             Instant timestamp,
@@ -28,17 +34,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
-        String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+        String raw = ex.getMessage() == null ? "" : ex.getMessage();
+        String msg = raw.toLowerCase();
 
-        if (msg.contains("unauthorized")) return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
-        if (msg.contains("invalid credentials")) return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
-        if (msg.contains("nicht gefunden") || msg.contains("not found")) return build(HttpStatus.NOT_FOUND, ex.getMessage());
+        if (msg.contains("unauthorized") || msg.contains("invalid credentials")) {
+            return build(HttpStatus.UNAUTHORIZED, raw);
+        }
+        if (msg.contains("nicht gefunden") || msg.contains("not found")) {
+            return build(HttpStatus.NOT_FOUND, raw);
+        }
+        return build(HttpStatus.BAD_REQUEST, raw);
+    }
 
-        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    // z.B. "/" oder "/favicon.ico" wenn nichts in static/ liegt
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "not found");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleOther(Exception ex) {
+        log.error("Unhandled exception", ex); // <-- wichtig fürs Debugging
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "internal server error");
     }
 
