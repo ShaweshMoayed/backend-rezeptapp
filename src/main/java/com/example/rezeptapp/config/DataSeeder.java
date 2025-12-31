@@ -1,3 +1,4 @@
+// src/main/java/com/example/rezeptapp/config/DataSeeder.java
 package com.example.rezeptapp.config;
 
 import com.example.rezeptapp.model.Ingredient;
@@ -31,7 +32,7 @@ public class DataSeeder {
             r1.setCategory("Pasta");
             r1.setServings(2);
             r1.setPrepMinutes(25);
-            // ✅ KEINE imageUrl / imageBase64 setzen
+            // ✅ KEIN imageUrl / imageBase64 mehr (Frontend nimmt lokale Bilder)
 
             Nutrition n1 = new Nutrition();
             n1.setCaloriesKcal(760);
@@ -60,7 +61,7 @@ public class DataSeeder {
             r2.setCategory("Healthy");
             r2.setServings(2);
             r2.setPrepMinutes(20);
-            // ✅ KEINE imageUrl / imageBase64 setzen
+            // ✅ KEIN imageUrl / imageBase64
 
             Nutrition n2 = new Nutrition();
             n2.setCaloriesKcal(520);
@@ -89,7 +90,7 @@ public class DataSeeder {
             r3.setCategory("Dessert");
             r3.setServings(3);
             r3.setPrepMinutes(20);
-            // ✅ KEINE imageUrl / imageBase64 setzen
+            // ✅ KEIN imageUrl / imageBase64
 
             Nutrition n3 = new Nutrition();
             n3.setCaloriesKcal(610);
