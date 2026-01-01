@@ -19,25 +19,31 @@ public class AuthService {
     }
 
     public void register(String username, String plainPassword) {
-        if (username == null || username.isBlank() || username.length() < 3) {
-            throw new IllegalArgumentException("Username muss mind. 3 Zeichen haben.");
+        String u = username == null ? "" : username.trim();
+        String p = plainPassword == null ? "" : plainPassword;
+
+        if (u.isEmpty()) {
+            throw new IllegalArgumentException("Benutzername darf nicht leer sein.");
         }
-        if (plainPassword == null || plainPassword.length() < 6) {
-            throw new IllegalArgumentException("Passwort muss mind. 6 Zeichen haben.");
+        if (p.isEmpty()) {
+            throw new IllegalArgumentException("Passwort darf nicht leer sein.");
         }
-        if (userRepo.existsByUsername(username)) {
-            throw new IllegalArgumentException("Username ist bereits vergeben.");
+        if (userRepo.existsByUsername(u)) {
+            throw new IllegalArgumentException("Benutzername ist bereits vergeben.");
         }
 
-        String hash = encoder.encode(plainPassword);
-        userRepo.save(new UserAccount(username, hash));
+        String hash = encoder.encode(p);
+        userRepo.save(new UserAccount(u, hash));
     }
 
     public String loginAndCreateToken(String username, String plainPassword) {
-        UserAccount user = userRepo.findByUsername(username)
+        String u = username == null ? "" : username.trim();
+        String p = plainPassword == null ? "" : plainPassword;
+
+        UserAccount user = userRepo.findByUsername(u)
                 .orElseThrow(() -> new IllegalArgumentException("invalid credentials"));
 
-        if (!encoder.matches(plainPassword, user.getPasswordHash())) {
+        if (!encoder.matches(p, user.getPasswordHash())) {
             throw new IllegalArgumentException("invalid credentials");
         }
 

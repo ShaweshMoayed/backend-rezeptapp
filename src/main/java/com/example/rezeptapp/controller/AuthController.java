@@ -5,6 +5,8 @@ import com.example.rezeptapp.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -22,7 +24,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody AuthRequest req) {
         authService.register(req.username(), req.password());
-        return ResponseEntity.ok("registered");
+        return ResponseEntity.ok(Map.of("status", "registered"));
     }
 
     @PostMapping("/login")
@@ -35,10 +37,9 @@ public class AuthController {
     public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
         String token = tokenFromHeader(authHeader);
         authService.logout(token);
-        return ResponseEntity.ok("logged out");
+        return ResponseEntity.ok(Map.of("status", "logged_out"));
     }
 
-    // ✅ GET /auth/me
     @GetMapping("/me")
     public ResponseEntity<?> me(@RequestHeader("Authorization") String authHeader) {
         String token = tokenFromHeader(authHeader);
