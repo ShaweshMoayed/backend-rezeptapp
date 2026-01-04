@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
@@ -37,6 +38,9 @@ public class GlobalExceptionHandler {
         String raw = ex.getMessage() == null ? "" : ex.getMessage();
         String msg = raw.toLowerCase();
 
+        if (msg.contains("forbidden")) {
+            return build(HttpStatus.FORBIDDEN, raw);
+        }
         if (msg.contains("unauthorized") || msg.contains("invalid credentials")) {
             return build(HttpStatus.UNAUTHORIZED, raw);
         }
@@ -46,7 +50,17 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, raw);
     }
 
-    // z.B. "/" oder "/favicon.ico" wenn nichts in static/ liegt
+    /**
+     *  Wichtig: damit ResponseStatusException (z.B. aus Controller) auch dein ApiError-Format bekommt
+     * -> Frontend http.ts findet dann sauber data.message für Toasts.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        String msg = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
+        return build(status, msg);
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex) {
         return build(HttpStatus.NOT_FOUND, "not found");
@@ -54,7 +68,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleOther(Exception ex) {
-        log.error("Unhandled exception", ex); // <-- wichtig fürs Debugging
+        log.error("Unhandled exception", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "internal server error");
     }
 

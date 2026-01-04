@@ -9,16 +9,12 @@ import java.util.List;
 
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
-    // ===== Basis-Queries =====
-
     List<Recipe> findByCategoryIgnoreCase(String category);
 
     List<Recipe> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
             String title,
             String description
     );
-
-    // ===== Suche mit Kategorie =====
 
     @Query("""
         SELECT r FROM Recipe r
@@ -33,9 +29,22 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             @Param("search") String search
     );
 
-    // ===== Kategorien (FIX für PostgreSQL) =====
-    // ❗ KEIN DISTINCT + ORDER BY lower(...)
-    // ❗ GROUP BY ist PostgreSQL-safe
+    // Eigene Rezepte
+    List<Recipe> findByCreatedByUsernameIgnoreCase(String createdByUsername);
+
+    @Query("""
+        SELECT r FROM Recipe r
+        WHERE lower(r.createdByUsername) = lower(:username)
+          AND (
+                lower(r.title) LIKE lower(concat('%', :search, '%'))
+             OR lower(r.description) LIKE lower(concat('%', :search, '%'))
+          )
+        """)
+    List<Recipe> searchMine(
+            @Param("username") String username,
+            @Param("search") String search
+    );
+
     @Query("""
         SELECT r.category
         FROM Recipe r

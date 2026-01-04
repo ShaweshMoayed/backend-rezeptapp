@@ -14,6 +14,8 @@ import java.util.List;
 @Service
 public class RecipeService {
 
+    private static final String MINE_VALUE = "__mine__";
+
     private final RecipeRepository repo;
     private final UserAccountRepository userRepo;
 
@@ -26,6 +28,11 @@ public class RecipeService {
         boolean hasSearch = search != null && !search.isBlank();
         boolean hasCategory = category != null && !category.isBlank();
 
+        // ✅ Schutz: "__mine__" darf hier NICHT als normale Kategorie laufen
+        if (hasCategory && category.trim().equalsIgnoreCase(MINE_VALUE)) {
+            throw new IllegalArgumentException("unauthorized");
+        }
+
         if (!hasSearch && !hasCategory) return repo.findAll();
 
         if (hasCategory && hasSearch) {
@@ -36,46 +43,112 @@ public class RecipeService {
         return repo.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(search.trim(), search.trim());
     }
 
+    /**
+     * ✅ Eigene Rezepte (createdByUsername) optional mit Suche
+     */
+    public List<Recipe> findMine(String username, String search) {
+        String u = username == null ? "" : username.trim();
+        if (u.isBlank()) throw new IllegalArgumentException("unauthorized");
+
+        boolean hasSearch = search != null && !search.isBlank();
+        if (!hasSearch) {
+            return repo.findByCreatedByUsernameIgnoreCase(u);
+        }
+        return repo.searchMine(u, search.trim());
+    }
+
     public Recipe findById(Long id) {
         return repo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Recipe nicht gefunden: " + id));
     }
 
+    /**
+     * ✅ CREATE: Pflicht prüfen + createdByUsername setzen
+     */
     @Transactional
-    public Recipe create(Recipe recipe) {
-        // falls Jackson direkt in die Liste schreibt: Backrefs sicher setzen
+    public Recipe createForUser(Recipe recipe, String username) {
+        String title = recipe.getTitle() == null ? "" : recipe.getTitle().trim();
+        String desc = recipe.getDescription() == null ? "" : recipe.getDescription().trim();
+        String instr = recipe.getInstructions() == null ? "" : recipe.getInstructions().trim();
+
+        if (title.isBlank()) throw new IllegalArgumentException("Titel ist ein Pflichtfeld.");
+        if (desc.isBlank()) throw new IllegalArgumentException("Beschreibung ist ein Pflichtfeld.");
+        if (instr.isBlank()) throw new IllegalArgumentException("Mindestens 1 Schritt ist Pflicht.");
+
+        if (recipe.getIngredients() == null || recipe.getIngredients().isEmpty()) {
+            throw new IllegalArgumentException("Mindestens 1 Zutat ist Pflicht.");
+        }
+
+        if (recipe.getNutrition() == null) {
+            throw new IllegalArgumentException("Nährwerte sind Pflicht.");
+        }
+
+        recipe.setCreatedByUsername(username);
+
         if (recipe.getIngredients() != null) {
             for (Ingredient ing : recipe.getIngredients()) {
                 ing.setRecipe(recipe);
             }
         }
+
         return repo.save(recipe);
     }
 
+    /**
+     * ✅ UPDATE: nur Owner darf ändern
+     * - KEIN @Valid: tolerant / partial update
+     */
     @Transactional
-    public Recipe update(Long id, Recipe incoming) {
+    public Recipe updateForUser(Long id, Recipe incoming, String username) {
         Recipe existing = findById(id);
+        requireOwner(existing, username, "ändern");
 
-        existing.setTitle(incoming.getTitle());
-        existing.setDescription(incoming.getDescription());
-        existing.setInstructions(incoming.getInstructions());
-        existing.setCategory(incoming.getCategory());
+        // partial update
+        if (incoming.getTitle() != null) existing.setTitle(incoming.getTitle());
+        if (incoming.getDescription() != null) existing.setDescription(incoming.getDescription());
+        if (incoming.getInstructions() != null) existing.setInstructions(incoming.getInstructions());
+        if (incoming.getCategory() != null) existing.setCategory(incoming.getCategory());
 
-        existing.setImageUrl(incoming.getImageUrl());
-        existing.setImageBase64(incoming.getImageBase64());
+        if (incoming.getImageUrl() != null) existing.setImageUrl(incoming.getImageUrl());
+        if (incoming.getImageBase64() != null) existing.setImageBase64(incoming.getImageBase64());
 
-        existing.setPrepMinutes(incoming.getPrepMinutes());
-        existing.setServings(incoming.getServings());
-        existing.setNutrition(incoming.getNutrition());
-        existing.setIngredients(incoming.getIngredients());
+        if (incoming.getPrepMinutes() != null) existing.setPrepMinutes(incoming.getPrepMinutes());
+        if (incoming.getServings() != null) existing.setServings(incoming.getServings());
+
+        if (incoming.getNutrition() != null) existing.setNutrition(incoming.getNutrition());
+        if (incoming.getIngredients() != null) existing.setIngredients(incoming.getIngredients());
 
         return repo.save(existing);
     }
 
+    /**
+     * ✅ DELETE: nur Owner darf löschen
+     */
     @Transactional
-    public void delete(Long id) {
-        if (!repo.existsById(id)) throw new IllegalArgumentException("Recipe nicht gefunden: " + id);
-        repo.deleteById(id);
+    public void deleteForUser(Long id, String username) {
+        Recipe existing = findById(id);
+        requireOwner(existing, username, "löschen");
+
+        repo.delete(existing);
+    }
+
+    /**
+     * Owner-Check:
+     * - Wenn createdByUsername fehlt (Seeder/alte Rezepte) => wir erlauben NICHT, dass beliebige User sie ändern/löschen.
+     */
+    private void requireOwner(Recipe recipe, String username, String actionVerb) {
+        String owner = recipe.getCreatedByUsername();
+        String u = username == null ? "" : username.trim();
+
+        if (u.isBlank()) throw new IllegalArgumentException("forbidden");
+
+        if (owner == null || owner.isBlank()) {
+            throw new IllegalArgumentException("forbidden: Dieses Rezept hat keinen Besitzer und kann nicht " + actionVerb + " werden.");
+        }
+
+        if (!owner.equalsIgnoreCase(u)) {
+            throw new IllegalArgumentException("forbidden: Nur der Ersteller darf dieses Rezept " + actionVerb + ".");
+        }
     }
 
     // ===== Favoriten pro User =====
@@ -106,7 +179,6 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public List<String> getAllCategories() {
-        // ✅ sauber trimmen + leere entfernen + doppelte vermeiden + sortieren
         return repo.findAllCategories().stream()
                 .map(s -> s == null ? "" : s.trim())
                 .filter(s -> !s.isBlank())

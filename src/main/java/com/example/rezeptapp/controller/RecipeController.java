@@ -15,11 +15,14 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @RestController
 @RequestMapping("/rezeptapp")
 public class RecipeController {
+
+    private static final String MINE_VALUE = "__mine__";
 
     private final RecipeService recipeService;
     private final PdfService pdfService;
@@ -34,8 +37,15 @@ public class RecipeController {
     @GetMapping
     public List<Recipe> getAllRecipes(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String category
+            @RequestParam(required = false) String category,
+            @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
+        // ✅ "Eigene Rezepte" special-case
+        if (category != null && category.trim().equalsIgnoreCase(MINE_VALUE)) {
+            UserAccount user = requireUserFromHeader(authHeader);
+            return recipeService.findMine(user.getUsername(), search);
+        }
+
         return recipeService.findAll(search, category);
     }
 
@@ -49,19 +59,61 @@ public class RecipeController {
         return recipeService.findById(id);
     }
 
+    /**
+     * ✅ CREATE: nur eingeloggt + @Valid aktiv (Pflichtfelder enforced)
+     */
     @PostMapping
-    public Recipe createRecipe(@Valid @RequestBody Recipe recipe) {
-        return recipeService.create(recipe);
+    public Recipe createRecipe(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @Valid @RequestBody Recipe recipe
+    ) {
+        UserAccount user = requireUserFromHeader(authHeader);
+        return recipeService.createForUser(recipe, user.getUsername());
     }
 
+    /**
+     * ✅ UPDATE: jetzt geschützt (Login Pflicht) + nur Owner
+     * ❗ KEIN @Valid -> tolerant für Seeder/alte Rezepte
+     */
     @PutMapping("/{id}")
-    public Recipe updateRecipe(@PathVariable Long id, @Valid @RequestBody Recipe recipe) {
-        return recipeService.update(id, recipe);
+    public Recipe updateRecipe(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @PathVariable Long id,
+            @RequestBody Recipe recipe
+    ) {
+        UserAccount user = requireUserFromHeader(authHeader);
+
+        try {
+            return recipeService.updateForUser(id, recipe, user.getUsername());
+        } catch (IllegalArgumentException ex) {
+            // wirf "forbidden" sauber als 403 raus
+            String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+            if (msg.contains("forbidden")) {
+                throw new ResponseStatusException(FORBIDDEN, ex.getMessage());
+            }
+            throw ex;
+        }
     }
 
+    /**
+     * ✅ DELETE: jetzt geschützt (Login Pflicht) + nur Owner
+     */
     @DeleteMapping("/{id}")
-    public void deleteRecipe(@PathVariable Long id) {
-        recipeService.delete(id);
+    public void deleteRecipe(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @PathVariable Long id
+    ) {
+        UserAccount user = requireUserFromHeader(authHeader);
+
+        try {
+            recipeService.deleteForUser(id, user.getUsername());
+        } catch (IllegalArgumentException ex) {
+            String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+            if (msg.contains("forbidden")) {
+                throw new ResponseStatusException(FORBIDDEN, ex.getMessage());
+            }
+            throw ex;
+        }
     }
 
     @GetMapping("/{id}/pdf")
@@ -84,25 +136,31 @@ public class RecipeController {
     // ===== Favoriten =====
 
     @GetMapping("/favorites")
-    public List<Recipe> getMyFavorites(@RequestHeader("Authorization") String authHeader) {
+    public List<Recipe> getMyFavorites(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         UserAccount user = requireUserFromHeader(authHeader);
         return recipeService.getFavorites(user);
     }
 
     @GetMapping("/favorites/ids")
-    public List<Long> getMyFavoriteIds(@RequestHeader("Authorization") String authHeader) {
+    public List<Long> getMyFavoriteIds(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         UserAccount user = requireUserFromHeader(authHeader);
         return recipeService.getFavoriteIds(user);
     }
 
     @PostMapping("/{id}/favorite")
-    public void addFavorite(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
+    public void addFavorite(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @PathVariable Long id
+    ) {
         UserAccount user = requireUserFromHeader(authHeader);
         recipeService.addFavorite(user, id);
     }
 
     @DeleteMapping("/{id}/favorite")
-    public void removeFavorite(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
+    public void removeFavorite(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @PathVariable Long id
+    ) {
         UserAccount user = requireUserFromHeader(authHeader);
         recipeService.removeFavorite(user, id);
     }
@@ -118,9 +176,14 @@ public class RecipeController {
 
     private String tokenFromHeader(String authHeader) {
         if (authHeader == null) throw new IllegalArgumentException("unauthorized");
+
         String prefix = "Bearer ";
         if (!authHeader.startsWith(prefix)) throw new IllegalArgumentException("unauthorized");
-        return authHeader.substring(prefix.length()).trim();
+
+        String token = authHeader.substring(prefix.length()).trim();
+        if (token.isEmpty()) throw new IllegalArgumentException("unauthorized");
+
+        return token;
     }
 
     private String encodeFilename(String name) {
