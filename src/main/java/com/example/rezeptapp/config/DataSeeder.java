@@ -16,9 +16,8 @@ public class DataSeeder {
     @Bean
     CommandLineRunner seedRecipes(RecipeRepository recipeRepository) {
         return args -> {
-            if (recipeRepository.count() > 0) return;
+            // ✅ Insert-if-missing: niemals "return", nur fehlende einfügen
 
-            // ===== 1) Carbonara =====
             Recipe r1 = new Recipe();
             r1.setTitle("Spaghetti Carbonara");
             r1.setDescription("Klassisch cremig – ohne Sahne, nur Ei & Parmesan.");
@@ -56,7 +55,6 @@ public class DataSeeder {
                     ing("Pfeffer", "1", "TL")
             ));
 
-            // ===== 2) Veggie Bowl =====
             Recipe r2 = new Recipe();
             r2.setTitle("Veggie Bowl");
             r2.setDescription("Frisch, gesund, schnell – ideal fürs Meal-Prep.");
@@ -94,7 +92,6 @@ public class DataSeeder {
                     ing("Zitrone", "1", "Stk")
             ));
 
-            // ===== 3) Pancakes =====
             Recipe r3 = new Recipe();
             r3.setTitle("Pancakes mit Beeren");
             r3.setDescription("Fluffige Pancakes – perfekt fürs Wochenende.");
@@ -133,7 +130,6 @@ public class DataSeeder {
                     ing("Beeren", "150", "g")
             ));
 
-            // ===== 4) Aglio e Olio =====
             Recipe r4 = new Recipe();
             r4.setTitle("Aglio e Olio");
             r4.setDescription("Minimalistisch, würzig, in kurzer Zeit fertig – perfekt, wenn’s schnell gehen soll.");
@@ -174,7 +170,6 @@ public class DataSeeder {
                     ing("Petersilie", "1", "Bund")
             ));
 
-            // ===== 5) Gemüse-Curry mit Reis =====
             Recipe r5 = new Recipe();
             r5.setTitle("Gemüse-Curry mit Reis");
             r5.setDescription("Cremiges Curry mit warmen Gewürzen – einfach, sättigend und super variabel.");
@@ -216,7 +211,6 @@ public class DataSeeder {
                     ing("Currypulver", "2", "TL")
             ));
 
-            // ===== 6) Falafel Wrap =====
             Recipe r6 = new Recipe();
             r6.setTitle("Falafel Wrap");
             r6.setDescription("Knusprige Falafel im Wrap mit frischem Gemüse und cremiger Sauce.");
@@ -255,7 +249,6 @@ public class DataSeeder {
                     ing("Tomate", "1", "Stk")
             ));
 
-            // ===== 7) Tofu Stir-Fry =====
             Recipe r7 = new Recipe();
             r7.setTitle("Tofu Stir-Fry");
             r7.setDescription("Schnelles Wok-Gericht mit Gemüse, Sojasauce und Sesam – perfekt für unter der Woche.");
@@ -296,7 +289,6 @@ public class DataSeeder {
                     ing("Sesam", "1", "EL")
             ));
 
-            // ===== 8) Sushi Bowl =====
             Recipe r8 = new Recipe();
             r8.setTitle("Sushi Bowl");
             r8.setDescription("Sushi-Feeling ohne Rollen: Reis, frische Toppings und eine schnelle Sauce.");
@@ -334,7 +326,6 @@ public class DataSeeder {
                     ing("Sesam", "1", "EL")
             ));
 
-            // ===== 9) Chili sin Carne =====
             Recipe r9 = new Recipe();
             r9.setTitle("Chili sin Carne");
             r9.setDescription("Deftig, vegan, perfekt zum Vorkochen – schmeckt am nächsten Tag oft noch besser.");
@@ -373,7 +364,6 @@ public class DataSeeder {
                     ing("Kreuzkümmel", "1", "TL")
             ));
 
-            // ===== 10) Guacamole mit Nachos =====
             Recipe r10 = new Recipe();
             r10.setTitle("Guacamole mit Nachos");
             r10.setDescription("Cremige Guacamole – ein super schneller Snack für Filmabend oder Gäste.");
@@ -410,7 +400,6 @@ public class DataSeeder {
                     ing("Salz", "1", "Prise")
             ));
 
-            // ===== 11) Burrito Bowl =====
             Recipe r11 = new Recipe();
             r11.setTitle("Burrito Bowl");
             r11.setDescription("Wie ein Burrito, nur als Bowl – schnell, bunt und richtig sättigend.");
@@ -447,7 +436,6 @@ public class DataSeeder {
                     ing("Salsa", "4", "EL")
             ));
 
-            // ===== 12) Caesar Salad =====
             Recipe r12 = new Recipe();
             r12.setTitle("Caesar Salad");
             r12.setDescription("Knackig, cremig, mit Croutons – ein Klassiker, der immer funktioniert.");
@@ -485,7 +473,6 @@ public class DataSeeder {
                     ing("Joghurt/Mayonnaise", "3", "EL")
             ));
 
-            // ===== 13) Tomatensuppe =====
             Recipe r13 = new Recipe();
             r13.setTitle("Tomatensuppe");
             r13.setDescription("Cremig und gemütlich – ideal an kalten Tagen oder wenn du schnell etwas Warmes willst.");
@@ -523,7 +510,6 @@ public class DataSeeder {
                     ing("Basilikum", "1", "Handvoll")
             ));
 
-            // ===== 14) Rührei Frühstück =====
             Recipe r14 = new Recipe();
             r14.setTitle("Rührei Frühstück");
             r14.setDescription("Schnelles Frühstück: cremiges Rührei, das immer gelingt – perfekt mit Brot.");
@@ -560,7 +546,6 @@ public class DataSeeder {
                     ing("Schnittlauch", "1", "EL")
             ));
 
-            // ===== 15) Classic Burger =====
             Recipe r15 = new Recipe();
             r15.setTitle("Classic Burger");
             r15.setDescription("Saftiger Burger mit Käse und frischen Toppings – wie aus dem Diner.");
@@ -599,10 +584,41 @@ public class DataSeeder {
                     ing("Tomate", "1", "Stk")
             ));
 
-            recipeRepository.saveAll(List.of(
-                    r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15
-            ));
+            // ✅ Jetzt: nur hinzufügen, wenn Titel noch nicht existiert
+            ensure(recipeRepository, r1);
+            ensure(recipeRepository, r2);
+            ensure(recipeRepository, r3);
+            ensure(recipeRepository, r4);
+            ensure(recipeRepository, r5);
+            ensure(recipeRepository, r6);
+            ensure(recipeRepository, r7);
+            ensure(recipeRepository, r8);
+            ensure(recipeRepository, r9);
+            ensure(recipeRepository, r10);
+            ensure(recipeRepository, r11);
+            ensure(recipeRepository, r12);
+            ensure(recipeRepository, r13);
+            ensure(recipeRepository, r14);
+            ensure(recipeRepository, r15);
         };
+    }
+
+    private void ensure(RecipeRepository repo, Recipe recipe) {
+        String title = (recipe.getTitle() == null) ? "" : recipe.getTitle().trim();
+        if (title.isBlank()) return;
+
+        if (repo.existsByTitleIgnoreCase(title)) {
+            return; // ✅ schon drin -> nichts tun
+        }
+
+        // ✅ wichtig: Backrefs auf recipe setzen (falls deine Recipe.setIngredients das NICHT macht)
+        if (recipe.getIngredients() != null) {
+            for (Ingredient ing : recipe.getIngredients()) {
+                ing.setRecipe(recipe);
+            }
+        }
+
+        repo.save(recipe);
     }
 
     private Ingredient ing(String name, String amount, String unit) {

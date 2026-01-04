@@ -9,6 +9,9 @@ import java.util.List;
 
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
+    // ✅ für Seeder "Insert-if-missing"
+    boolean existsByTitleIgnoreCase(String title);
+
     List<Recipe> findByCategoryIgnoreCase(String category);
 
     List<Recipe> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
