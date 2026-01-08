@@ -25,7 +25,7 @@ public class RecipeService {
     }
 
     /**
-     *  Public + (wenn username != null) Owned
+     * Public + (wenn username != null) Owned
      */
     public List<Recipe> findAll(String usernameOrNull, String search, String category) {
         boolean loggedIn = usernameOrNull != null && !usernameOrNull.trim().isBlank();
@@ -34,72 +34,57 @@ public class RecipeService {
         boolean hasSearch = search != null && !search.isBlank();
         boolean hasCategory = category != null && !category.isBlank();
 
-        // "__mine__" darf NICHT als normale Kategorie laufen
         if (hasCategory && category.trim().equalsIgnoreCase(MINE_VALUE)) {
             throw new IllegalArgumentException("unauthorized");
         }
 
-        // ---- Logged in => public OR owned
         if (loggedIn) {
             if (!hasSearch && !hasCategory) return repo.findPublicOrOwned(u);
 
-            if (hasCategory && hasSearch) {
-                return repo.searchInCategoryPublicOrOwned(u, category.trim(), search.trim());
-            }
+            if (hasCategory && hasSearch) return repo.searchInCategoryPublicOrOwned(u, category.trim(), search.trim());
             if (hasCategory) return repo.findByCategoryPublicOrOwned(u, category.trim());
 
             return repo.searchPublicOrOwned(u, search.trim());
         }
 
-        // ---- Guest => public only
+        // guest => public only
         if (!hasSearch && !hasCategory) return repo.findPublicOnly();
 
-        if (hasCategory && hasSearch) {
-            return repo.searchInCategoryPublicOnly(category.trim(), search.trim());
-        }
+        if (hasCategory && hasSearch) return repo.searchInCategoryPublicOnly(category.trim(), search.trim());
         if (hasCategory) return repo.findByCategoryPublicOnly(category.trim());
 
         return repo.searchPublicOnly(search.trim());
     }
 
     /**
-     *  Eigene Rezepte (createdByUsername) optional mit Suche
+     * Eigene Rezepte
      */
     public List<Recipe> findMine(String username, String search) {
         String u = username == null ? "" : username.trim();
         if (u.isBlank()) throw new IllegalArgumentException("unauthorized");
 
         boolean hasSearch = search != null && !search.isBlank();
-        if (!hasSearch) return repo.findByCreatedByUsernameIgnoreCase(u);
+        if (!hasSearch) return repo.findMineOrdered(u);
 
-        return repo.searchMine(u, search.trim());
+        return repo.searchMineOrdered(u, search.trim());
     }
 
     /**
-     *  Zugriffsschutz: private Rezepte nur für Owner
+     * Zugriffsschutz: private Rezepte nur für Owner
      */
     public Recipe findByIdForUser(Long id, String usernameOrNull) {
-        Recipe r = repo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Recipe nicht gefunden: " + id));
+        boolean loggedIn = usernameOrNull != null && !usernameOrNull.trim().isBlank();
+        String u = loggedIn ? usernameOrNull.trim() : "";
 
-        String owner = r.getCreatedByUsername();
-        if (owner == null || owner.isBlank()) {
-            // public
-            return r;
+        if (!loggedIn) {
+            return repo.findPublicById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("forbidden"));
         }
 
-        // private -> nur owner
-        String u = usernameOrNull == null ? "" : usernameOrNull.trim();
-        if (u.isBlank() || !owner.equalsIgnoreCase(u)) {
-            throw new IllegalArgumentException("forbidden");
-        }
-
-        return r;
+        return repo.findVisibleByIdForUser(id, u)
+                .orElseThrow(() -> new IllegalArgumentException("forbidden"));
     }
 
-    /**
-     *  CREATE: Pflicht prüfen + createdByUsername setzen
-     */
     @Transactional
     public Recipe createForUser(Recipe recipe, String username) {
         String title = recipe.getTitle() == null ? "" : recipe.getTitle().trim();
@@ -113,7 +98,6 @@ public class RecipeService {
         if (recipe.getIngredients() == null || recipe.getIngredients().isEmpty()) {
             throw new IllegalArgumentException("Mindestens 1 Zutat ist Pflicht.");
         }
-
         if (recipe.getNutrition() == null) {
             throw new IllegalArgumentException("Nährwerte sind Pflicht.");
         }
@@ -125,14 +109,9 @@ public class RecipeService {
                 ing.setRecipe(recipe);
             }
         }
-
         return repo.save(recipe);
     }
 
-    /**
-     *  UPDATE: nur Owner darf ändern
-     * - tolerant / partial update
-     */
     @Transactional
     public Recipe updateForUser(Long id, Recipe incoming, String username) {
         Recipe existing = repo.findById(id)
@@ -157,9 +136,6 @@ public class RecipeService {
         return repo.save(existing);
     }
 
-    /**
-     *  DELETE: nur Owner darf löschen
-     */
     @Transactional
     public void deleteForUser(Long id, String username) {
         Recipe existing = repo.findById(id)
@@ -189,7 +165,6 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public List<Recipe> getFavorites(UserAccount user) {
-        // Optional: hier könnte man zusätzlich sicherstellen, dass der User keine fremden privaten Rezepte in Favorites hat.
         return new ArrayList<>(user.getFavorites());
     }
 
@@ -200,7 +175,6 @@ public class RecipeService {
 
     @Transactional
     public void addFavorite(UserAccount user, Long recipeId) {
-        // Favorisieren nur, wenn der User es sehen darf:
         Recipe recipe = findByIdForUser(recipeId, user.getUsername());
         user.getFavorites().add(recipe);
         userRepo.save(user);
@@ -208,16 +182,12 @@ public class RecipeService {
 
     @Transactional
     public void removeFavorite(UserAccount user, Long recipeId) {
-        // Entfernen darf er immer versuchen
         Recipe recipe = repo.findById(recipeId)
                 .orElseThrow(() -> new IllegalArgumentException("Recipe nicht gefunden: " + recipeId));
         user.getFavorites().remove(recipe);
         userRepo.save(user);
     }
 
-    /**
-     *  Kategorien: public only (guest) oder public + owned (logged in)
-     */
     @Transactional(readOnly = true)
     public List<String> getAllCategories(String usernameOrNull) {
         boolean loggedIn = usernameOrNull != null && !usernameOrNull.trim().isBlank();

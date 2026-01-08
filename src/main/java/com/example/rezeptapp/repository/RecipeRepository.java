@@ -6,19 +6,25 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     // für Seeder "Insert-if-missing"
     boolean existsByTitleIgnoreCase(String title);
 
-
+    // =========================================================
+    // Sorting: Seeder (createdByUsername IS NULL) zuerst,
+    // dann User-Rezepte; innerhalb jeweils ID ASC (wie früher)
+    // =========================================================
 
     @Query("""
         SELECT r FROM Recipe r
         WHERE r.createdByUsername IS NULL
            OR lower(r.createdByUsername) = lower(:username)
-        ORDER BY r.id DESC
+        ORDER BY
+          CASE WHEN r.createdByUsername IS NULL THEN 0 ELSE 1 END ASC,
+          r.id ASC
         """)
     List<Recipe> findPublicOrOwned(@Param("username") String username);
 
@@ -29,7 +35,9 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
                 lower(r.title) LIKE lower(concat('%', :search, '%'))
              OR lower(r.description) LIKE lower(concat('%', :search, '%'))
           )
-        ORDER BY r.id DESC
+        ORDER BY
+          CASE WHEN r.createdByUsername IS NULL THEN 0 ELSE 1 END ASC,
+          r.id ASC
         """)
     List<Recipe> searchPublicOrOwned(
             @Param("username") String username,
@@ -40,7 +48,9 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         SELECT r FROM Recipe r
         WHERE (r.createdByUsername IS NULL OR lower(r.createdByUsername) = lower(:username))
           AND lower(r.category) = lower(:category)
-        ORDER BY r.id DESC
+        ORDER BY
+          CASE WHEN r.createdByUsername IS NULL THEN 0 ELSE 1 END ASC,
+          r.id ASC
         """)
     List<Recipe> findByCategoryPublicOrOwned(
             @Param("username") String username,
@@ -55,7 +65,9 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
                 lower(r.title) LIKE lower(concat('%', :search, '%'))
              OR lower(r.description) LIKE lower(concat('%', :search, '%'))
           )
-        ORDER BY r.id DESC
+        ORDER BY
+          CASE WHEN r.createdByUsername IS NULL THEN 0 ELSE 1 END ASC,
+          r.id ASC
         """)
     List<Recipe> searchInCategoryPublicOrOwned(
             @Param("username") String username,
@@ -73,11 +85,16 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         """)
     List<String> findCategoriesPublicOrOwned(@Param("username") String username);
 
-    // ============================
-    // Mine-only (wie bisher)
-    // ============================
+    // =========================================================
+    // Mine-only (Eigene Rezepte) -> nur owned, ebenfalls ASC
+    // =========================================================
 
-    List<Recipe> findByCreatedByUsernameIgnoreCase(String createdByUsername);
+    @Query("""
+        SELECT r FROM Recipe r
+        WHERE lower(r.createdByUsername) = lower(:username)
+        ORDER BY r.id ASC
+        """)
+    List<Recipe> findMineOrdered(@Param("username") String username);
 
     @Query("""
         SELECT r FROM Recipe r
@@ -86,20 +103,21 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
                 lower(r.title) LIKE lower(concat('%', :search, '%'))
              OR lower(r.description) LIKE lower(concat('%', :search, '%'))
           )
+        ORDER BY r.id ASC
         """)
-    List<Recipe> searchMine(
+    List<Recipe> searchMineOrdered(
             @Param("username") String username,
             @Param("search") String search
     );
 
-    // ============================
-    // Public-only (für Gäste)
-    // ============================
+    // =========================================================
+    // Public-only (für Gäste) -> ASC
+    // =========================================================
 
     @Query("""
         SELECT r FROM Recipe r
         WHERE r.createdByUsername IS NULL
-        ORDER BY r.id DESC
+        ORDER BY r.id ASC
         """)
     List<Recipe> findPublicOnly();
 
@@ -110,7 +128,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
                 lower(r.title) LIKE lower(concat('%', :search, '%'))
              OR lower(r.description) LIKE lower(concat('%', :search, '%'))
           )
-        ORDER BY r.id DESC
+        ORDER BY r.id ASC
         """)
     List<Recipe> searchPublicOnly(@Param("search") String search);
 
@@ -118,7 +136,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         SELECT r FROM Recipe r
         WHERE r.createdByUsername IS NULL
           AND lower(r.category) = lower(:category)
-        ORDER BY r.id DESC
+        ORDER BY r.id ASC
         """)
     List<Recipe> findByCategoryPublicOnly(@Param("category") String category);
 
@@ -130,7 +148,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
                 lower(r.title) LIKE lower(concat('%', :search, '%'))
              OR lower(r.description) LIKE lower(concat('%', :search, '%'))
           )
-        ORDER BY r.id DESC
+        ORDER BY r.id ASC
         """)
     List<Recipe> searchInCategoryPublicOnly(
             @Param("category") String category,
@@ -146,4 +164,26 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         ORDER BY lower(r.category)
         """)
     List<String> findCategoriesPublicOnly();
+
+    // =========================================================
+    // Sichtbarkeit Detail: public ODER own
+    // (damit niemand fremde private Rezepte per URL sehen kann)
+    // =========================================================
+
+    @Query("""
+        SELECT r FROM Recipe r
+        WHERE r.id = :id
+          AND (r.createdByUsername IS NULL OR lower(r.createdByUsername) = lower(:username))
+        """)
+    Optional<Recipe> findVisibleByIdForUser(
+            @Param("id") Long id,
+            @Param("username") String username
+    );
+
+    @Query("""
+        SELECT r FROM Recipe r
+        WHERE r.id = :id
+          AND r.createdByUsername IS NULL
+        """)
+    Optional<Recipe> findPublicById(@Param("id") Long id);
 }

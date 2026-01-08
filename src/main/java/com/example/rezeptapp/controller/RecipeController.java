@@ -40,21 +40,17 @@ public class RecipeController {
             @RequestParam(required = false) String category,
             @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
-        // "Eigene Rezepte" special-case
         if (category != null && category.trim().equalsIgnoreCase(MINE_VALUE)) {
             UserAccount user = requireUserFromHeader(authHeader);
             return recipeService.findMine(user.getUsername(), search);
         }
 
-        // Normal: public + (wenn eingeloggt) own private
         String usernameOrNull = tryUsernameFromHeader(authHeader);
         return recipeService.findAll(usernameOrNull, search, category);
     }
 
     @GetMapping("/categories")
-    public List<String> getCategories(
-            @RequestHeader(value = "Authorization", required = false) String authHeader
-    ) {
+    public List<String> getCategories(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         String usernameOrNull = tryUsernameFromHeader(authHeader);
         return recipeService.getAllCategories(usernameOrNull);
     }
@@ -65,21 +61,15 @@ public class RecipeController {
             @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
         String usernameOrNull = tryUsernameFromHeader(authHeader);
-
         try {
             return recipeService.findByIdForUser(id, usernameOrNull);
         } catch (IllegalArgumentException ex) {
             String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
-            if (msg.contains("forbidden")) {
-                throw new ResponseStatusException(FORBIDDEN, "forbidden");
-            }
+            if (msg.contains("forbidden")) throw new ResponseStatusException(FORBIDDEN, "forbidden");
             throw ex;
         }
     }
 
-    /**
-     * CREATE: nur eingeloggt + @Valid aktiv
-     */
     @PostMapping
     public Recipe createRecipe(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -89,9 +79,6 @@ public class RecipeController {
         return recipeService.createForUser(recipe, user.getUsername());
     }
 
-    /**
-     * UPDATE: Login + nur Owner
-     */
     @PutMapping("/{id}")
     public Recipe updateRecipe(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -99,35 +86,26 @@ public class RecipeController {
             @RequestBody Recipe recipe
     ) {
         UserAccount user = requireUserFromHeader(authHeader);
-
         try {
             return recipeService.updateForUser(id, recipe, user.getUsername());
         } catch (IllegalArgumentException ex) {
             String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
-            if (msg.contains("forbidden")) {
-                throw new ResponseStatusException(FORBIDDEN, ex.getMessage());
-            }
+            if (msg.contains("forbidden")) throw new ResponseStatusException(FORBIDDEN, ex.getMessage());
             throw ex;
         }
     }
 
-    /**
-     * DELETE: Login + nur Owner
-     */
     @DeleteMapping("/{id}")
     public void deleteRecipe(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @PathVariable Long id
     ) {
         UserAccount user = requireUserFromHeader(authHeader);
-
         try {
             recipeService.deleteForUser(id, user.getUsername());
         } catch (IllegalArgumentException ex) {
             String msg = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
-            if (msg.contains("forbidden")) {
-                throw new ResponseStatusException(FORBIDDEN, ex.getMessage());
-            }
+            if (msg.contains("forbidden")) throw new ResponseStatusException(FORBIDDEN, ex.getMessage());
             throw ex;
         }
     }
@@ -138,9 +116,12 @@ public class RecipeController {
             @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
         String usernameOrNull = tryUsernameFromHeader(authHeader);
-
-        // PDF nur, wenn man das Rezept sehen darf
-        Recipe recipe = recipeService.findByIdForUser(id, usernameOrNull);
+        Recipe recipe;
+        try {
+            recipe = recipeService.findByIdForUser(id, usernameOrNull);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(FORBIDDEN, "forbidden");
+        }
 
         byte[] pdf = pdfService.createRecipePdf(recipe);
 
@@ -188,7 +169,7 @@ public class RecipeController {
         recipeService.removeFavorite(user, id);
     }
 
-    // Auth helpers
+    // ===== Auth helpers =====
 
     private UserAccount requireUserFromHeader(String authHeader) {
         try {
@@ -199,9 +180,6 @@ public class RecipeController {
         }
     }
 
-    /**
-     *  Optional: gibt username zurück oder null (wenn kein/ungültiger Header)
-     */
     private String tryUsernameFromHeader(String authHeader) {
         try {
             if (authHeader == null) return null;
