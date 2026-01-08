@@ -13,7 +13,7 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
     Optional<UserAccount> findByAuthToken(String authToken);
 
-    // ✅ wichtig für Favorites: lädt favorites direkt mit
+    // wichtig für Favorites: lädt favorites direkt mit
     @EntityGraph(attributePaths = "favorites")
     Optional<UserAccount> findWithFavoritesByAuthToken(String authToken);
 }
