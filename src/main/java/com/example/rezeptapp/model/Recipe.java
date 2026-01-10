@@ -41,8 +41,12 @@ public class Recipe {
     @Column(length = 20000)
     private String imageUrl;
 
-    @Lob
-    @Column(columnDefinition = "TEXT")
+    /**
+     * WICHTIG (Postgres):
+     * KEIN @Lob auf String verwenden, sonst kann Hibernate eine OID/Large-Object-Spalte erzeugen.
+     * Wir speichern Base64 als TEXT.
+     */
+    @Column(name = "image_base64", columnDefinition = "TEXT")
     private String imageBase64;
 
     private Integer prepMinutes;
