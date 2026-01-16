@@ -13,7 +13,7 @@ public class Ingredient {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ✅ Pflicht
+    // Pflicht
     @NotBlank(message = "ingredient.name darf nicht leer sein")
     @Size(min = 1, max = 120, message = "ingredient.name muss 1-120 Zeichen haben")
     @Column(nullable = false, length = 120)

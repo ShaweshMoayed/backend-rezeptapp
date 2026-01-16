@@ -24,9 +24,6 @@ public class RecipeService {
         this.userRepo = userRepo;
     }
 
-    /**
-     * Public + (wenn username != null) Owned
-     */
     public List<Recipe> findAll(String usernameOrNull, String search, String category) {
         boolean loggedIn = usernameOrNull != null && !usernameOrNull.trim().isBlank();
         String u = loggedIn ? usernameOrNull.trim() : "";
@@ -56,9 +53,6 @@ public class RecipeService {
         return repo.searchPublicOnly(search.trim());
     }
 
-    /**
-     * Eigene Rezepte
-     */
     public List<Recipe> findMine(String username, String search) {
         String u = username == null ? "" : username.trim();
         if (u.isBlank()) throw new IllegalArgumentException("unauthorized");
@@ -69,9 +63,6 @@ public class RecipeService {
         return repo.searchMineOrdered(u, search.trim());
     }
 
-    /**
-     * Zugriffsschutz: private Rezepte nur für Owner
-     */
     public Recipe findByIdForUser(Long id, String usernameOrNull) {
         boolean loggedIn = usernameOrNull != null && !usernameOrNull.trim().isBlank();
         String u = loggedIn ? usernameOrNull.trim() : "";

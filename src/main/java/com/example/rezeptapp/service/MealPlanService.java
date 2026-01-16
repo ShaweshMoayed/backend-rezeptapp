@@ -46,10 +46,14 @@ public class MealPlanService {
 
     @Transactional
     public MealPlan create(UserAccount user, String title, LocalDate weekStartMonday, List<MealPlanEntry> entries) {
+        // Neu: entries darf nicht leer sein
+        if (entries == null || entries.isEmpty()) {
+            throw new IllegalArgumentException("entries darf nicht leer sein");
+        }
+
         LocalDate monday = ensureMonday(weekStartMonday != null ? weekStartMonday : LocalDate.now());
 
         normalizeRecipes(entries);
-
         validateWeek(entries, monday);
         validateAtLeastOneRecipePerDay(entries, monday);
 
@@ -64,6 +68,11 @@ public class MealPlanService {
 
     @Transactional
     public MealPlan update(UserAccount user, Long planId, String title, LocalDate weekStartMonday, List<MealPlanEntry> entries) {
+        // Neu: entries darf nicht leer sein
+        if (entries == null || entries.isEmpty()) {
+            throw new IllegalArgumentException("entries darf nicht leer sein");
+        }
+
         MealPlan existing = get(user, planId);
 
         if (title != null) existing.setTitle(title);
@@ -75,7 +84,6 @@ public class MealPlanService {
         }
 
         normalizeRecipes(entries);
-
         validateWeek(entries, monday);
         validateAtLeastOneRecipePerDay(entries, monday);
 

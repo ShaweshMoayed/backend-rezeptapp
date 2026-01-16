@@ -19,19 +19,19 @@ public class Recipe {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // ✅ Pflicht
+    // Pflicht
     @NotBlank(message = "title darf nicht leer sein")
     @Size(min = 2, max = 120, message = "title muss 2-120 Zeichen haben")
     @Column(nullable = false, length = 120)
     private String title;
 
-    // ✅ Pflicht
+    // Pflicht
     @NotBlank(message = "description darf nicht leer sein")
     @Size(min = 3, max = 2000, message = "description muss 3-2000 Zeichen haben")
     @Column(nullable = false, length = 2000)
     private String description;
 
-    // ✅ Pflicht: mindestens 1 Schritt (als Text)
+    // Pflicht: mindestens 1 Schritt (als Text)
     @NotBlank(message = "instructions darf nicht leer sein")
     @Column(length = 10000)
     private String instructions;
@@ -41,31 +41,27 @@ public class Recipe {
     @Column(length = 20000)
     private String imageUrl;
 
-    /**
-     * WICHTIG (Postgres):
-     * KEIN @Lob auf String verwenden, sonst kann Hibernate eine OID/Large-Object-Spalte erzeugen.
-     * Wir speichern Base64 als TEXT.
-     */
+
     @Column(name = "image_base64", columnDefinition = "TEXT")
     private String imageBase64;
 
     private Integer prepMinutes;
     private Integer servings;
 
-    // ✅ Pflicht: Nutrition muss existieren
+    // Pflicht: Nutrition muss existieren
     @NotNull(message = "nutrition ist Pflicht")
     @Embedded
     @Valid
     private Nutrition nutrition;
 
-    // ✅ Pflicht: mindestens 1 Zutat
+    // Pflicht: mindestens 1 Zutat
     @NotNull(message = "ingredients ist Pflicht")
     @Size(min = 1, message = "mindestens 1 Zutat ist Pflicht")
     @Valid
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Ingredient> ingredients = new ArrayList<>();
 
-    // ✅ Variante A: Owner als String (passt zu ALTER TABLE ... created_by_username)
+    // Variante A: Owner als String (passt zu ALTER TABLE ... created_by_username)
     @Column(name = "created_by_username", length = 80)
     private String createdByUsername;
 

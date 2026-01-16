@@ -10,9 +10,10 @@ import org.springframework.stereotype.Service;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Base64;
-import java.util.Date;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 @Service
 public class PdfService {
@@ -29,6 +30,11 @@ public class PdfService {
     private static final Font TEXT = FontFactory.getFont(FontFactory.HELVETICA, 11, Color.BLACK);
     private static final Font MUTED = FontFactory.getFont(FontFactory.HELVETICA, 10, TEXT_MUTED);
 
+    // Deutsch + Berlin Timezone
+    private static final ZoneId ZONE_DE = ZoneId.of("Europe/Berlin");
+    private static final Locale LOCALE_DE = Locale.GERMANY;
+    private static final DateTimeFormatter DT_DE = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm", LOCALE_DE);
+
     public byte[] createRecipePdf(Recipe recipe) {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -39,11 +45,10 @@ public class PdfService {
 
             doc.open();
 
-            // ✅ Titel-Box enthält jetzt auch "RezeptApp – Rezeptkarte" + Logo
+            // Titel-Box enthält Header + Logo + PDF-Erstellungsdatum (DE)
             doc.add(buildTitleBoxWithHeader(recipe));
 
-            // Bild: nur Base64 (keine externen URLs)
-            addRecipeImageIfPossible(doc, recipe);
+            // KEIN Rezeptbild mehr in PDFs (egal ob Seeder oder eigene Rezepte)
 
             // Meta-Karten (Kategorie / Portionen / Zeit)
             doc.add(metaBlock(recipe));
@@ -58,7 +63,7 @@ public class PdfService {
                 doc.add(nutritionCards(recipe.getNutrition()));
             }
 
-            // ✅ Zubereitung IMMER auf neuer Seite starten (damit sie nicht "halb" auf Seite 1 anfängt)
+            // Zubereitung IMMER auf neuer Seite starten
             doc.newPage();
 
             // Zubereitung
@@ -107,11 +112,12 @@ public class PdfService {
         head.addCell(right);
         head.setSpacingAfter(10);
 
-        // Titel + Datum + Beschreibung
+        // Titel + PDF-Erstellungsdatum + Beschreibung
         Paragraph title = new Paragraph(safe(recipe.getTitle(), "Rezept"), TITLE);
         title.setSpacingAfter(6);
 
-        Paragraph createdP = new Paragraph("Erstellt am " + formatCreatedAt(recipe), SUB);
+        // Wichtig: Das ist jetzt das PDF-Erstellungsdatum (nicht recipe.createdAt)
+        Paragraph createdP = new Paragraph("PDF erstellt am " + formatNowDe(), SUB);
         createdP.setSpacingAfter(8);
 
         String descTxt = safe(recipe.getDescription(), "").trim();
@@ -129,7 +135,7 @@ public class PdfService {
     }
 
     private Image loadLogo() {
-        // ✅ Datei hier ablegen: src/main/resources/static/logo.png
+        // Datei hier ablegen: src/main/resources/static/logo.png
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("static/logo.png")) {
             if (is == null) return null;
             byte[] bytes = is.readAllBytes();
@@ -139,55 +145,8 @@ public class PdfService {
         }
     }
 
-    private String formatCreatedAt(Recipe r) {
-        try {
-            if (r.getCreatedAt() != null) {
-                Date d = Date.from(r.getCreatedAt());
-                return new SimpleDateFormat("dd.MM.yyyy, HH:mm").format(d);
-            }
-        } catch (Exception ignored) {}
-        return new SimpleDateFormat("dd.MM.yyyy, HH:mm").format(new Date());
-    }
-
-    // ===== Rezeptbild (nur Base64!) =====
-    private void addRecipeImageIfPossible(Document doc, Recipe recipe) {
-        try {
-            byte[] bytes = null;
-
-            if (recipe.getImageBase64() != null && !recipe.getImageBase64().isBlank()) {
-                bytes = decodeBase64Image(recipe.getImageBase64());
-            }
-
-            // ❌ bewusst KEIN imageUrl-Download mehr
-            if (bytes == null || bytes.length == 0) return;
-
-            Image img = Image.getInstance(bytes);
-            img.scaleToFit(520, 260);
-
-            PdfPTable frame = new PdfPTable(1);
-            frame.setWidthPercentage(100);
-
-            PdfPCell cell = new PdfPCell(img, true);
-            cell.setBorderColor(BORDER);
-            cell.setBorderWidth(1f);
-            cell.setPadding(8f);
-            cell.setBackgroundColor(new Color(250, 250, 250));
-            frame.addCell(cell);
-
-            frame.setSpacingAfter(12);
-            doc.add(frame);
-        } catch (Exception ignored) {}
-    }
-
-    private byte[] decodeBase64Image(String base64) {
-        try {
-            int comma = base64.indexOf(',');
-            String clean = (comma >= 0) ? base64.substring(comma + 1) : base64;
-            clean = clean.trim();
-            return Base64.getDecoder().decode(clean);
-        } catch (Exception e) {
-            return null;
-        }
+    private String formatNowDe() {
+        return ZonedDateTime.now(ZONE_DE).format(DT_DE);
     }
 
     // ===== Meta-Karten =====

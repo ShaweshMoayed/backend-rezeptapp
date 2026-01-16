@@ -13,11 +13,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     // für Seeder "Insert-if-missing"
     boolean existsByTitleIgnoreCase(String title);
 
-    // =========================================================
-    // Sorting: Seeder (createdByUsername IS NULL) zuerst,
-    // dann User-Rezepte; innerhalb jeweils ID ASC (wie früher)
-    // =========================================================
-
     @Query("""
         SELECT r FROM Recipe r
         WHERE r.createdByUsername IS NULL
@@ -85,10 +80,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         """)
     List<String> findCategoriesPublicOrOwned(@Param("username") String username);
 
-    // =========================================================
-    // Mine-only (Eigene Rezepte) -> nur owned, ebenfalls ASC
-    // =========================================================
-
     @Query("""
         SELECT r FROM Recipe r
         WHERE lower(r.createdByUsername) = lower(:username)
@@ -109,10 +100,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             @Param("username") String username,
             @Param("search") String search
     );
-
-    // =========================================================
-    // Public-only (für Gäste) -> ASC
-    // =========================================================
 
     @Query("""
         SELECT r FROM Recipe r
@@ -164,11 +151,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
         ORDER BY lower(r.category)
         """)
     List<String> findCategoriesPublicOnly();
-
-    // =========================================================
-    // Sichtbarkeit Detail: public ODER own
-    // (damit niemand fremde private Rezepte per URL sehen kann)
-    // =========================================================
 
     @Query("""
         SELECT r FROM Recipe r

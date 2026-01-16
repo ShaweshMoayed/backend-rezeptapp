@@ -50,10 +50,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, raw);
     }
 
-    /**
-     *  Wichtig: damit ResponseStatusException (z.B. aus Controller) auch dein ApiError-Format bekommt
-     * -> Frontend http.ts findet dann sauber data.message für Toasts.
-     */
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException ex) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());

@@ -54,7 +54,6 @@ public class MealPlanController {
     @PostMapping
     public MealPlan create(@RequestHeader("Authorization") String authHeader, @RequestBody PlanRequest req) {
         UserAccount user = requireUserFromHeader(authHeader);
-
         List<MealPlanEntry> entries = toEntries(req.entries());
         return planService.create(user, req.title(), req.weekStartMonday(), entries);
     }
@@ -62,7 +61,6 @@ public class MealPlanController {
     @PutMapping("/{id}")
     public MealPlan update(@RequestHeader("Authorization") String authHeader, @PathVariable Long id, @RequestBody PlanRequest req) {
         UserAccount user = requireUserFromHeader(authHeader);
-
         List<MealPlanEntry> entries = toEntries(req.entries());
         return planService.update(user, id, req.title(), req.weekStartMonday(), entries);
     }
@@ -93,6 +91,11 @@ public class MealPlanController {
                 .body(pdf);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
+
     // ===== Helpers =====
 
     private List<MealPlanEntry> toEntries(List<PlanEntryDto> dtos) {
@@ -104,7 +107,6 @@ public class MealPlanController {
             e.setSlot(d.slot());
             e.setServings(d.servings());
 
-            // Wir setzen hier nur Recipe mit ID (Service löst es zu Entity auf)
             if (d.recipeId() != null) {
                 com.example.rezeptapp.model.Recipe r = new com.example.rezeptapp.model.Recipe();
                 r.setId(d.recipeId());

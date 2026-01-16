@@ -16,7 +16,6 @@ public class DataSeeder {
     @Bean
     CommandLineRunner seedRecipes(RecipeRepository recipeRepository) {
         return args -> {
-            // ✅ Insert-if-missing: niemals "return", nur fehlende einfügen
 
             Recipe r1 = new Recipe();
             r1.setTitle("Spaghetti Carbonara");
@@ -584,7 +583,6 @@ public class DataSeeder {
                     ing("Tomate", "1", "Stk")
             ));
 
-            // ✅ Jetzt: nur hinzufügen, wenn Titel noch nicht existiert
             ensure(recipeRepository, r1);
             ensure(recipeRepository, r2);
             ensure(recipeRepository, r3);
@@ -608,10 +606,9 @@ public class DataSeeder {
         if (title.isBlank()) return;
 
         if (repo.existsByTitleIgnoreCase(title)) {
-            return; // ✅ schon drin -> nichts tun
+            return;
         }
 
-        // ✅ wichtig: Backrefs auf recipe setzen (falls deine Recipe.setIngredients das NICHT macht)
         if (recipe.getIngredients() != null) {
             for (Ingredient ing : recipe.getIngredients()) {
                 ing.setRecipe(recipe);
