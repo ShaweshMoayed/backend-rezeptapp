@@ -27,6 +27,7 @@ public class MealPlanPdfService {
     private static final Color BRAND = new Color(47, 93, 76);          // #2f5d4c
     private static final Color BORDER = new Color(235, 235, 235);
     private static final Color TEXT_MUTED = new Color(90, 90, 90);
+    private static final Color SOFT_BG = new Color(250, 250, 250);
 
     // ===== Fonts =====
     private static final Font TITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, BRAND);
@@ -37,12 +38,7 @@ public class MealPlanPdfService {
     private static final Font MUTED = FontFactory.getFont(FontFactory.HELVETICA, 10, TEXT_MUTED);
 
     private static final Font CHIP_LABEL = FontFactory.getFont(FontFactory.HELVETICA, 9, TEXT_MUTED);
-
-    // Dynamische Fonts für lange Rezeptnamen
-    private static final Font CHIP_VALUE_12 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Color.BLACK);
-    private static final Font CHIP_VALUE_11 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Color.BLACK);
-    private static final Font CHIP_VALUE_10 = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.BLACK);
-    private static final Font CHIP_VALUE_9  = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9,  Color.BLACK);
+    private static final Font CHIP_VALUE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Color.BLACK);
 
     // Deutsch + Berlin Timezone
     private static final ZoneId ZONE_DE = ZoneId.of("Europe/Berlin");
@@ -60,10 +56,8 @@ public class MealPlanPdfService {
 
             doc.open();
 
-            // Titel-Box (wie Rezept-PDF)
             doc.add(buildTitleBox(plan));
 
-            // Tages-Blöcke (keepTogether)
             LocalDate monday = plan.getWeekStartMonday();
             List<MealPlanEntry> entries = plan.getEntries() == null ? List.of() : plan.getEntries();
             entries = entries.stream()
@@ -72,6 +66,7 @@ public class MealPlanPdfService {
 
             doc.add(sectionTitle("Woche im Überblick"));
 
+            // 7 Tages-Blöcke (keepTogether, damit nicht halb/halb auf Seiten)
             for (int i = 0; i < 7; i++) {
                 LocalDate day = monday.plusDays(i);
                 doc.add(dayBlock(day, entries));
@@ -123,16 +118,11 @@ public class MealPlanPdfService {
         head.addCell(right);
         head.setSpacingAfter(10);
 
-        String title = (plan.getTitle() == null || plan.getTitle().isBlank())
-                ? "Wochenplan"
-                : plan.getTitle().trim();
+        String title = safe(plan.getTitle(), "Wochenplan").trim();
+        if (title.length() > 80) title = title.substring(0, 77) + "…";
 
-        // Robuster: extrem lange Titel weich kürzen (Design bleibt sauber)
-        String safeTitle = softTruncate(title, 90);
-
-        Paragraph pTitle = new Paragraph(safeTitle, TITLE);
+        Paragraph pTitle = new Paragraph(title, TITLE);
         pTitle.setSpacingAfter(6);
-        pTitle.setLeading(0, 1.15f);
 
         Paragraph createdP = new Paragraph("PDF erstellt am " + formatNowDe(), SUB);
         createdP.setSpacingAfter(6);
@@ -152,6 +142,7 @@ public class MealPlanPdfService {
     }
 
     private Image loadLogo() {
+        // src/main/resources/static/logo.png
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("static/logo.png")) {
             if (is == null) return null;
             byte[] bytes = is.readAllBytes();
@@ -184,29 +175,30 @@ public class MealPlanPdfService {
         box.setBorderWidth(1f);
         box.setPadding(12f);
         box.setBackgroundColor(Color.WHITE);
+        box.setUseAscender(true);
+        box.setUseDescender(true);
 
-        Paragraph head = new Paragraph(dayLabel(day), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BRAND));
+        Paragraph head = new Paragraph(
+                dayLabel(day),
+                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BRAND)
+        );
         head.setSpacingAfter(8);
         box.addElement(head);
 
         PdfPTable grid = new PdfPTable(new float[]{1f, 1f, 1f});
         grid.setWidthPercentage(100);
 
-        grid.addCell(slotCard(
-                "Frühstück",
+        grid.addCell(slotCard("Frühstück",
                 recipeTitle(entries, day, MealSlot.BREAKFAST),
-                servingsText(entries, day, MealSlot.BREAKFAST)
-        ));
-        grid.addCell(slotCard(
-                "Mittagessen",
+                servingsText(entries, day, MealSlot.BREAKFAST)));
+
+        grid.addCell(slotCard("Mittagessen",
                 recipeTitle(entries, day, MealSlot.LUNCH),
-                servingsText(entries, day, MealSlot.LUNCH)
-        ));
-        grid.addCell(slotCard(
-                "Abendessen",
+                servingsText(entries, day, MealSlot.LUNCH)));
+
+        grid.addCell(slotCard("Abendessen",
                 recipeTitle(entries, day, MealSlot.DINNER),
-                servingsText(entries, day, MealSlot.DINNER)
-        ));
+                servingsText(entries, day, MealSlot.DINNER)));
 
         box.addElement(grid);
         outer.addCell(box);
@@ -219,24 +211,17 @@ public class MealPlanPdfService {
         c.setBorderColor(BORDER);
         c.setBorderWidth(1f);
         c.setPadding(10f);
-        c.setBackgroundColor(Color.WHITE);
-
-        // Robuster: sorgt für sauberes Wrapping/Vertikal-Layout
-        c.setNoWrap(false);
-        c.setUseAscender(true);
-        c.setUseDescender(true);
+        c.setBackgroundColor(SOFT_BG);
         c.setVerticalAlignment(Element.ALIGN_TOP);
 
         Paragraph l = new Paragraph(label, CHIP_LABEL);
 
-        String vRaw = (value == null || value.isBlank()) ? "—" : value.trim();
-        // Robuster: extrem lange Rezeptnamen weich kürzen, damit Karten nicht explodieren
-        String vTxt = softTruncate(vRaw, 80);
-        Font vFont = pickValueFont(vTxt);
+        String vTxt = safe(value, "—");
+        if (vTxt.length() > 90) vTxt = vTxt.substring(0, 87) + "…";
 
-        Paragraph v = new Paragraph(vTxt, vFont);
+        Paragraph v = new Paragraph(vTxt, CHIP_VALUE);
         v.setSpacingBefore(3);
-        v.setLeading(0, 1.12f); // etwas enger, damit 2-3 Zeilen noch gut passen
+        v.setLeading(0, 1.15f);
 
         c.addElement(l);
         c.addElement(v);
@@ -248,32 +233,6 @@ public class MealPlanPdfService {
         }
 
         return c;
-    }
-
-    // Dynamische Schriftgröße je nach Länge
-    private Font pickValueFont(String text) {
-        int len = text == null ? 0 : text.length();
-        if (len > 70) return CHIP_VALUE_9;
-        if (len > 55) return CHIP_VALUE_10;
-        if (len > 40) return CHIP_VALUE_11;
-        return CHIP_VALUE_12;
-    }
-
-    // Weiches Kürzen (ohne "hartes" Abschneiden mitten im Wort, wenn möglich)
-    private String softTruncate(String s, int max) {
-        if (s == null) return "";
-        String t = s.trim();
-        if (t.length() <= max) return t;
-
-        int cut = max - 1; // Platz für "…"
-        if (cut < 1) return "…";
-
-        // Wenn möglich: auf letztem Leerzeichen vor cut schneiden
-        int lastSpace = t.lastIndexOf(' ', cut);
-        if (lastSpace >= Math.max(10, cut - 25)) {
-            return t.substring(0, lastSpace).trim() + "…";
-        }
-        return t.substring(0, cut).trim() + "…";
     }
 
     private String recipeTitle(List<MealPlanEntry> entries, LocalDate day, MealSlot slot) {
@@ -291,8 +250,7 @@ public class MealPlanPdfService {
             if (day.equals(e.getDay()) && slot == e.getSlot()) {
                 Integer s = e.getServings();
                 if (s == null) return "";
-                if (s == 1) return "1 Portion";
-                return s + " Portionen";
+                return (s == 1) ? "1 Portion" : (s + " Portionen");
             }
         }
         return "";

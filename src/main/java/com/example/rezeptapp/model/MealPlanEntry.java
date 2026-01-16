@@ -1,51 +1,23 @@
 package com.example.rezeptapp.model;
 
-import jakarta.persistence.*;
-
 import java.time.LocalDate;
 
-@Entity
-@Table(
-        name = "meal_plan_entries",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_plan_day_slot",
-                columnNames = {"meal_plan_id", "plan_day", "slot"}
-        )
-)
+/**
+ * Transiente Klasse (kein @Entity).
+ * Wird nur für Validierung + PDF-Erstellung genutzt.
+ */
 public class MealPlanEntry {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    // Zugehöriger Plan
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "meal_plan_id")
-    private MealPlan plan;
-
-    // Datum innerhalb der Woche (Mo–So)
-    @Column(name = "plan_day", nullable = false)
     private LocalDate day;
-
-    // Frühstück/Mittag/Abend
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private MealSlot slot;
 
-    // ausgewähltes Rezept (darf null sein -> Slot "leer")
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "recipe_id")
+    // darf null sein => Slot leer
     private Recipe recipe;
 
     // optional
     private Integer servings;
 
     public MealPlanEntry() {}
-
-    public Long getId() { return id; }
-
-    public MealPlan getPlan() { return plan; }
-    public void setPlan(MealPlan plan) { this.plan = plan; }
 
     public LocalDate getDay() { return day; }
     public void setDay(LocalDate day) { this.day = day; }

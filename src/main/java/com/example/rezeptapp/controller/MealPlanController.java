@@ -37,49 +37,28 @@ public class MealPlanController {
     public record PlanEntryDto(LocalDate day, MealSlot slot, Long recipeId, Integer servings) {}
     public record PlanRequest(String title, LocalDate weekStartMonday, List<PlanEntryDto> entries) {}
 
-    // ===== CRUD =====
-
-    @GetMapping
-    public List<MealPlan> list(@RequestHeader("Authorization") String authHeader) {
+    // ===== NEW: PDF without saving =====
+    // POST /rezeptapp/plans/pdf   Body: {title, weekStartMonday, entries}  -> application/pdf
+    @PostMapping(value = "/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportPdf(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody PlanRequest req
+    ) {
         UserAccount user = requireUserFromHeader(authHeader);
-        return planService.list(user);
-    }
 
-    @GetMapping("/{id}")
-    public MealPlan get(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
-        UserAccount user = requireUserFromHeader(authHeader);
-        return planService.get(user, id);
-    }
-
-    @PostMapping
-    public MealPlan create(@RequestHeader("Authorization") String authHeader, @RequestBody PlanRequest req) {
-        UserAccount user = requireUserFromHeader(authHeader);
         List<MealPlanEntry> entries = toEntries(req.entries());
-        return planService.create(user, req.title(), req.weekStartMonday(), entries);
-    }
 
-    @PutMapping("/{id}")
-    public MealPlan update(@RequestHeader("Authorization") String authHeader, @PathVariable Long id, @RequestBody PlanRequest req) {
-        UserAccount user = requireUserFromHeader(authHeader);
-        List<MealPlanEntry> entries = toEntries(req.entries());
-        return planService.update(user, id, req.title(), req.weekStartMonday(), entries);
-    }
+        // ✅ Validierung + Recipe-Resolving passiert im Service
+        MealPlan transientPlan = planService.buildTransientPlan(
+                user,
+                req.title(),
+                req.weekStartMonday(),
+                entries
+        );
 
-    @DeleteMapping("/{id}")
-    public void delete(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
-        UserAccount user = requireUserFromHeader(authHeader);
-        planService.delete(user, id);
-    }
+        byte[] pdf = planPdfService.createPlanPdf(transientPlan);
 
-    // ===== PDF =====
-    @GetMapping("/{id}/pdf")
-    public ResponseEntity<byte[]> pdf(@RequestHeader("Authorization") String authHeader, @PathVariable Long id) {
-        UserAccount user = requireUserFromHeader(authHeader);
-        MealPlan plan = planService.get(user, id);
-
-        byte[] pdf = planPdfService.createPlanPdf(plan);
-
-        String filename = (plan.getTitle() == null ? "wochenplan" : plan.getTitle())
+        String filename = (transientPlan.getTitle() == null ? "wochenplan" : transientPlan.getTitle())
                 .replaceAll("[^a-zA-Z0-9\\-_ ]", "")
                 .trim()
                 .replace(" ", "_");
@@ -91,6 +70,7 @@ public class MealPlanController {
                 .body(pdf);
     }
 
+    // ✅ Saubere Fehlermeldungen fürs Frontend (Toast zeigt exakt ex.getMessage())
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(ex.getMessage());
@@ -107,6 +87,7 @@ public class MealPlanController {
             e.setSlot(d.slot());
             e.setServings(d.servings());
 
+            // Wir setzen hier nur Recipe mit ID (Service löst es zu Entity auf)
             if (d.recipeId() != null) {
                 com.example.rezeptapp.model.Recipe r = new com.example.rezeptapp.model.Recipe();
                 r.setId(d.recipeId());
