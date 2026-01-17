@@ -34,14 +34,14 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         String token = tokenFromHeader(authHeader);
         authService.logout(token);
         return ResponseEntity.ok(Map.of("status", "logged_out"));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> me(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> me(@RequestHeader(value = "Authorization", required = false) String authHeader) {
         String token = tokenFromHeader(authHeader);
         UserAccount u = authService.requireUser(token);
         return ResponseEntity.ok(new MeResponse(u.getId(), u.getUsername()));
