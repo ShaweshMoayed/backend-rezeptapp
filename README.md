@@ -6,6 +6,17 @@
 
 ---
 
+## 🌍 Live (Render)
+
+| Dienst | URL |
+|------|-----|
+| **Backend (REST API)** | https://backend-rezeptapp-v72u.onrender.com |
+| **Frontend (Vue SPA)** | https://frontend-rezeptapp-e5m5.onrender.com |
+
+> Das Backend stellt eine öffentlich erreichbare Spring Boot REST API bereit, die vom Vue.js Frontend konsumiert wird.
+
+---
+
 ## 📋 Projektbeschreibung
 
 Das Backend der **RezeptApp** ist eine REST API, die mit **Spring Boot** entwickelt wurde.  
