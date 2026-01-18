@@ -257,12 +257,12 @@ Das Backend ist auf **Render.com** deployed:
 
 ## 🐳 Docker
 ```dockerfile
-FROM gradle:jdk21-jammy AS build
+FROM gradle:jdk25-jammy AS build
 COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
 RUN gradle build --no-daemon
 
-FROM eclipse-temurin:21-jdk-jammy
+FROM eclipse-temurin:25-jdk-jammy
 COPY --from=build /home/gradle/src/build/libs/rezeptapp-0.0.1-SNAPSHOT.jar app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
 ```
@@ -271,6 +271,6 @@ ENTRYPOINT ["java","-jar","/app.jar"]
 
 ## 📝 Hinweis
 
-Dieses Projekt wurde im Rahmen des Moduls **Webtechnologien** an der **HTW Berlin** umgesetzt und erfüllt alle Mindest- und Bewertungskriterien für die Note 1,0.
+Dieses Projekt wurde im Rahmen des Moduls **Webtechnologien** an der **HTW Berlin** umgesetzt.
 
 ---
